@@ -1,0 +1,95 @@
+// ─── Mandil Farmhouse — Prisma Schema ────────────────────────────────────────
+// Prisma 7 uses provider = "prisma-client" (NOT "prisma-client-js").
+// Generated client output: app/generated/prisma
+// Import in application code: import { PrismaClient } from "@/app/generated/prisma"
+// ─────────────────────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum PricingModel {
+  PER_PERSON   // totalPrice = basePrice * numberOfGuests
+  PER_BOAT     // totalPrice = basePrice (fixed, regardless of guests)
+  CUSTOM       // totalPrice must be set manually by admin
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+model Package {
+  id           String       @id @default(cuid())
+  name         String       @unique
+  description  String?
+  basePrice    Decimal      @db.Decimal(10, 2) // LKR — the atomic price unit
+  pricingModel PricingModel @default(PER_PERSON)
+  isActive     Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  bookings     Booking[]
+
+  @@map("packages")
+}
+
+model Booking {
+  id              String        @id @default(cuid())
+  bookingNumber   String        @unique           // e.g. "MF-1024"
+  status          BookingStatus @default(PENDING)
+
+  // Guest details
+  guestName       String
+  guestPhone      String
+  guestEmail      String?
+
+  // Reservation details
+  bookingDate     DateTime
+  numberOfGuests  Int
+  totalPrice      Decimal       @db.Decimal(10, 2)
+
+  // Admin fields
+  adminNotes      String?
+
+  // Relations
+  packageId       String
+  package         Package       @relation(fields: [packageId], references: [id])
+
+  // Timestamps
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  activityLogs    ActivityLog[]
+
+  @@index([bookingNumber])
+  @@index([guestPhone])
+  @@index([status])
+  @@index([bookingDate])
+  @@map("bookings")
+}
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  bookingId   String
+  booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  action      String   // Human-readable description, e.g. "Status updated to CONFIRMED"
+  previousValue String? // JSON-stringified snapshot of changed fields before change
+  newValue    String?  // JSON-stringified snapshot of changed fields after change
+  performedBy String   @default("system") // "admin" | "system" | admin user id
+  createdAt   DateTime @default(now())
+
+  @@index([bookingId])
+  @@map("activity_logs")
+}

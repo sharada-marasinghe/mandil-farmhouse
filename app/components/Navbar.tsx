@@ -1,18 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaLeaf, FaBars, FaTimes, FaAnchor } from "react-icons/fa";
+import { FaLeaf, FaBars, FaTimes, FaAnchor, FaReceipt } from "react-icons/fa";
 import { HiOutlineSparkles } from "react-icons/hi";
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
 const navLinks = [
-  { label: "Packages", href: "#packages" },
-  { label: "Safaris",  href: "#safaris"  },
-  { label: "Gallery",  href: "#gallery"  },
-  { label: "About",    href: "#about"    },
-  { label: "Contact",  href: "#contact"  },
+  { label: "Packages",      href: "#packages",      external: false },
+  { label: "Safaris",       href: "#safaris",       external: false },
+  { label: "Gallery",       href: "#gallery",       external: false },
+  { label: "About",         href: "#about",         external: false },
+  { label: "Contact",       href: "#contact",       external: false },
+  { label: "Track Booking", href: "/track-booking", external: true  },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -79,19 +81,37 @@ export default function Navbar() {
 
           {/* ── Desktop Links ── Centered midpoint */}
           <div className="hidden md:flex items-center gap-1 absolute left-1/2 -translate-x-1/2">
-            {navLinks.map((link, i) => (
-              <motion.button
-                key={link.label}
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 * i + 0.3 }}
-                onClick={() => handleNavClick(link.href)}
-                className="relative px-4 py-2 text-sm font-medium text-slate-300 hover:text-emerald-400 transition-colors duration-200 rounded-lg hover:bg-white/5 group"
-              >
-                {link.label}
-                <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-emerald-400 rounded-full group-hover:w-4 transition-all duration-300" />
-              </motion.button>
-            ))}
+            {navLinks.map((link, i) =>
+              link.external ? (
+                <motion.div
+                  key={link.label}
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 * i + 0.3 }}
+                >
+                  <Link
+                    href={link.href}
+                    className="relative flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-emerald-400 hover:text-emerald-300 transition-colors duration-200 rounded-lg hover:bg-emerald-500/8 group"
+                  >
+                    <FaReceipt className="text-xs" />
+                    {link.label}
+                    <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-emerald-400 rounded-full group-hover:w-4 transition-all duration-300" />
+                  </Link>
+                </motion.div>
+              ) : (
+                <motion.button
+                  key={link.label}
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 * i + 0.3 }}
+                  onClick={() => handleNavClick(link.href)}
+                  className="relative px-4 py-2 text-sm font-medium text-slate-300 hover:text-emerald-400 transition-colors duration-200 rounded-lg hover:bg-white/5 group"
+                >
+                  {link.label}
+                  <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-emerald-400 rounded-full group-hover:w-4 transition-all duration-300" />
+                </motion.button>
+              )
+            )}
           </div>
 
           {/* ── Right zone: Book Now CTA + mobile hamburger ───────────────── */}
@@ -135,18 +155,36 @@ export default function Navbar() {
           >
             <div className="flex flex-col h-full pt-20 pb-8 px-6">
               <nav className="flex flex-col gap-2">
-                {navLinks.map((link, i) => (
-                  <motion.button
-                    key={link.label}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.08 }}
-                    onClick={() => handleNavClick(link.href)}
-                    className="text-left px-4 py-3.5 text-base font-medium text-slate-200 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-xl transition-all duration-200 border border-transparent hover:border-emerald-500/20"
-                  >
-                    {link.label}
-                  </motion.button>
-                ))}
+                {navLinks.map((link, i) =>
+                  link.external ? (
+                    <motion.div
+                      key={link.label}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.08 }}
+                    >
+                      <Link
+                        href={link.href}
+                        onClick={() => setMobileOpen(false)}
+                        className="flex items-center gap-2 px-4 py-3.5 text-base font-medium text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 rounded-xl transition-all duration-200 border border-transparent hover:border-emerald-500/20"
+                      >
+                        <FaReceipt className="text-sm" />
+                        {link.label}
+                      </Link>
+                    </motion.div>
+                  ) : (
+                    <motion.button
+                      key={link.label}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.08 }}
+                      onClick={() => handleNavClick(link.href)}
+                      className="text-left px-4 py-3.5 text-base font-medium text-slate-200 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-xl transition-all duration-200 border border-transparent hover:border-emerald-500/20"
+                    >
+                      {link.label}
+                    </motion.button>
+                  )
+                )}
               </nav>
               <div className="mt-auto">
                 <button

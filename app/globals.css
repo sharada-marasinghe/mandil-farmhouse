@@ -201,3 +201,32 @@ body {
   font-weight: 700 !important;
 }
 .react-datepicker__day--disabled { color: #4b5563 !important; }
+
+/* ─── Print / PDF styles ─────────────────────────────────────────────────── */
+@media print {
+  nav,
+  footer,
+  form,
+  #download-pdf-btn,
+  #whatsapp-share-btn {
+    display: none !important;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #1e293b !important;
+  }
+
+  #booking-receipt {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: none !important;
+    color: #1e293b !important;
+    border-radius: 0 !important;
+  }
+
+  #booking-receipt * {
+    color: inherit !important;
+    border-color: #cbd5e1 !important;
+  }
+}
