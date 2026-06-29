@@ -93,3 +93,16 @@ model ActivityLog {
   @@index([bookingId])
   @@map("activity_logs")
 }
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String   // Hashed password
+  name      String?
+  role      String   @default("admin")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+

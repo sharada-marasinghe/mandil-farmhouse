@@ -23,6 +23,8 @@
 import { type NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { BookingStatus } from "@/app/generated/prisma";
+import { auth } from "@/auth";
+
 
 // ── Runtime config ───────────────────────────────────────────────────────────
 export const runtime = "nodejs";
@@ -155,6 +157,17 @@ export async function PATCH(
     );
   }
 
+  // 1b. Enforce NextAuth session authentication
+  const session = await auth();
+  if (!session || !session.user) {
+    return Response.json(
+      { success: false, error: "Unauthorized access. Admin privileges required." },
+      { status: 401 }
+    );
+  }
+  const operatorName = session.user.name || "Super Admin";
+
+
   // 2. Parse request body
   let rawBody: unknown;
   try {
@@ -278,7 +291,7 @@ export async function PATCH(
           action: actionDescription,
           previousValue: previousSnapshot,
           newValue: newSnapshot,
-          performedBy: "admin", // TODO: replace with authenticated user id when auth is added
+          performedBy: operatorName,
         },
       });
 
