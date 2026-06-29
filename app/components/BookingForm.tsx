@@ -1,535 +1,502 @@
 "use client";
 
-// ─── Why "use client" + ssr:false (set in BookingSection.tsx) ────────────────
-// react-datepicker computes calendar grids using Date.now() and the browser's
-// locale, which always produces a different result on the server vs. the client.
-// Marking this file "use client" alone is NOT enough — Next.js still attempts a
-// server pre-render that diverges. The parent dynamic() call with { ssr: false }
-// prevents any server execution of this module entirely, making hydration
-// mismatches structurally impossible.
-// ─────────────────────────────────────────────────────────────────────────────
-
 import { useState, useEffect } from "react";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
-import { motion, AnimatePresence, Variants } from "framer-motion";
-import {
-  FaCalendarAlt,
-  FaUsers,
-  FaAnchor,
-  FaCheckCircle,
-  FaPhone,
-  FaWhatsapp,
-  FaChevronDown,
-} from "react-icons/fa";
-import { HiSparkles } from "react-icons/hi";
+import { 
+  FiCalendar, 
+  FiUser, 
+  FiPhone, 
+  FiMail, 
+  FiCheckCircle, 
+  FiAlertTriangle, 
+  FiChevronDown, 
+  FiInfo, 
+  FiArrowRight,
+  FiHelpCircle
+} from "react-icons/fi";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type PackageId =
-  | "boat-safari-1h"
-  | "boat-safari-2h"
-  | "boat-safari-sunset"
-  | "family-adult"
-  | "family-mixed";
-
-interface PackageOption {
-  value: PackageId;
-  label: string;
-  price: string;
-  category: "safari" | "family";
+interface Package {
+  id: string;
+  name: string;
+  basePrice: number;
+  pricingModel: string;
+  description?: string | null;
+  isActive: boolean;
 }
 
-// ─── Data ─────────────────────────────────────────────────────────────────────
-
-const PACKAGES: PackageOption[] = [
+const DEFAULT_PACKAGES: Package[] = [
   {
-    value: "boat-safari-1h",
-    label: "Boat Safari — 1 Hour",
-    price: "LKR 8,500 / boat",
-    category: "safari",
+    id: "boat-safari-1h",
+    name: "Boat Safari — 1 Hour",
+    basePrice: 8500,
+    pricingModel: "PER_BOAT",
+    isActive: true
   },
   {
-    value: "boat-safari-2h",
-    label: "Boat Safari — 2 Hours",
-    price: "LKR 15,000 / boat",
-    category: "safari",
+    id: "boat-safari-2h",
+    name: "Boat Safari — 2 Hours",
+    basePrice: 15000,
+    pricingModel: "PER_BOAT",
+    isActive: true
   },
   {
-    value: "boat-safari-sunset",
-    label: "Sunset Safari Charter (3h)",
-    price: "LKR 22,000 / boat",
-    category: "safari",
+    id: "boat-safari-sunset",
+    name: "Sunset Safari Charter (3h)",
+    basePrice: 22000,
+    pricingModel: "PER_BOAT",
+    isActive: true
   },
   {
-    value: "family-adult",
-    label: "Family Day-Out (Adults only)",
-    price: "LKR 3,500 / person",
-    category: "family",
+    id: "family-adult",
+    name: "Family Day-Out (Adults only)",
+    basePrice: 3500,
+    pricingModel: "PER_PERSON",
+    isActive: true
   },
   {
-    value: "family-mixed",
-    label: "Family Day-Out (Mixed ages)",
-    price: "Custom quote",
-    category: "family",
-  },
+    id: "family-mixed",
+    name: "Family Day-Out (Mixed ages)",
+    basePrice: 0,
+    pricingModel: "CUSTOM",
+    isActive: true
+  }
 ];
 
-const POLICY_ITEMS = [
+const POLICIES = [
   "Instant booking confirmation",
-  "Free cancellation 24 hours before",
-  "No hidden charges",
-  "Group discounts for 15+ guests",
+  "Free cancellation up to 24 hours before your visit",
+  "No hidden booking charges or credit card fees",
+  "Special group discount rates for 15+ guests"
 ];
-
-// ─── Shared style tokens ──────────────────────────────────────────────────────
-
-const inputCls =
-  "w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 text-white " +
-  "placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500/60 " +
-  "focus:bg-emerald-500/5 focus:ring-2 focus:ring-emerald-500/50 transition-all duration-200";
-
-const labelCls =
-  "block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2";
-
-// ─── Framer Motion variants ───────────────────────────────────────────────────
-
-const sectionVariants: Variants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.12, delayChildren: 0.05 },
-  },
-};
-
-const colVariants: Variants = {
-  hidden: { opacity: 0, y: 24 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] as const },
-  },
-};
-
-const successVariants: Variants = {
-  hidden: { opacity: 0, scale: 0.88 },
-  visible: { opacity: 1, scale: 1, transition: { duration: 0.4, ease: "easeOut" } },
-  exit: { opacity: 0, scale: 0.92, transition: { duration: 0.25 } },
-};
-
-const formVariants: Variants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { duration: 0.3 } },
-  exit: { opacity: 0, transition: { duration: 0.2 } },
-};
-
-// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function BookingForm() {
-  // Guard: delay rendering until client mount to avoid any residual SSR diff
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const [packages, setPackages] = useState<Package[]>(DEFAULT_PACKAGES);
 
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [guests, setGuests] = useState<number>(2);
-  const [packageId, setPackageId] = useState<PackageId>("boat-safari-2h");
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  // Form State
+  const [selectedPackageId, setSelectedPackageId] = useState("");
+  const [bookingDate, setBookingDate] = useState("");
+  const [numberOfGuests, setNumberOfGuests] = useState(1);
+  const [guestName, setGuestName] = useState("");
+  const [guestPhone, setGuestPhone] = useState("");
+  const [guestEmail, setGuestEmail] = useState("");
+  
+  // Submit & Loading State
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [createdBooking, setCreatedBooking] = useState<any | null>(null);
 
-  const selectedPkg = PACKAGES.find((p) => p.value === packageId)!;
+  useEffect(() => {
+    setMounted(true);
 
-  // minDate is computed client-side only — no SSR clock divergence possible
-  const minDate = (() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 1);
-    return d;
-  })();
+    async function fetchPackages() {
+      try {
+        const res = await fetch("/api/packages");
+        const data = await res.json();
+        if (data.success && data.packages && data.packages.length > 0) {
+          setPackages(data.packages);
+        }
+      } catch (err) {
+        console.warn("Could not fetch active packages from DB, using fallback defaults.");
+      }
+    }
 
-  const formattedDate = selectedDate
-    ? selectedDate.toLocaleDateString("en-GB", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      })
-    : "Not selected";
+    fetchPackages();
+  }, []);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!selectedDate || !name.trim() || !phone.trim()) return;
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      setSubmitted(true);
-    }, 1800);
-  };
+  // Set default package when packages are loaded
+  useEffect(() => {
+    if (packages.length > 0 && !selectedPackageId) {
+      setSelectedPackageId(packages[0].id);
+    }
+  }, [packages, selectedPackageId]);
 
-  const handleReset = () => {
-    setSubmitted(false);
-    setName("");
-    setPhone("");
-    setSelectedDate(null);
-    setGuests(2);
-    setPackageId("boat-safari-2h");
-  };
-
-  const handleWhatsApp = () => {
-    const dateStr = selectedDate
-      ? selectedDate.toLocaleDateString("en-GB")
-      : "TBD";
-    const msg = encodeURIComponent(
-      `Hi Mandil Farmhouse! I'd like to book:\n\n` +
-        `Package: ${selectedPkg.label}\n` +
-        `Date: ${dateStr}\n` +
-        `Guests: ${guests}\n` +
-        `Name: ${name || "—"}\n` +
-        `Phone: ${phone || "—"}`
-    );
-    window.open(`https://wa.me/94712345678?text=${msg}`, "_blank");
-  };
-
-  // Render a transparent placeholder until the client is ready — this prevents
-  // a flash of un-animated content before Framer Motion takes over.
+  // Prevent SSR hydration warnings
   if (!mounted) {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch w-full max-w-6xl mx-auto opacity-0" />
-    );
+    return <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-12 items-start w-full opacity-0" />;
   }
 
+  const activePackage = packages.find(p => p.id === selectedPackageId);
+
+  const calculateTotal = () => {
+    if (!activePackage) return { amount: 0, text: "LKR 0" };
+    
+    if (activePackage.pricingModel === "PER_BOAT") {
+      return { 
+        amount: activePackage.basePrice, 
+        text: `LKR ${activePackage.basePrice.toLocaleString("en-US")}` 
+      };
+    }
+    
+    if (activePackage.pricingModel === "PER_PERSON") {
+      const total = activePackage.basePrice * numberOfGuests;
+      return { 
+        amount: total, 
+        text: `LKR ${total.toLocaleString("en-US")}` 
+      };
+    }
+    
+    return { amount: 0, text: "Custom Quote (Admin will confirm)" };
+  };
+
+  const totalPriceObj = calculateTotal();
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPackageId || !bookingDate || !guestName.trim() || !guestPhone.trim()) {
+      setSubmitError("Please fill in all required fields.");
+      return;
+    }
+
+    setSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const payload = {
+        guestName: guestName.trim(),
+        guestPhone: guestPhone.trim(),
+        guestEmail: guestEmail.trim() || undefined,
+        bookingDate,
+        numberOfGuests,
+        packageId: selectedPackageId
+      };
+
+      const res = await fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      const result = await res.json();
+
+      if (!res.ok) {
+        throw new Error(result.error || "Failed to create booking request.");
+      }
+
+      if (result.success && result.booking) {
+        setCreatedBooking(result.booking);
+      } else {
+        throw new Error("Invalid response from server.");
+      }
+    } catch (err: any) {
+      setSubmitError(err.message || "An unexpected error occurred. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
-    <motion.div
-      variants={sectionVariants}
-      initial="hidden"
-      animate="visible"
-      className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch w-full max-w-6xl mx-auto"
-    >
-      {/* ── Left column: main form card ──────────────────────────────────── */}
-      <motion.div variants={colVariants} className="w-full">
-        <div className="glass-card rounded-3xl border border-white/10 p-6 sm:p-8 h-full flex flex-col justify-between">
-          <div>
-            <h3 className="font-display text-xl font-bold text-white mb-6 flex items-center gap-2">
-              <FaCalendarAlt className="text-emerald-500" />
-              Availability Check
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-12 items-start w-full">
+      {/* Left Column - Availability Form */}
+      <div className="bg-white p-8 md:p-10 rounded-2xl border border-slate-200 shadow-sm lg:col-span-7">
+        {createdBooking ? (
+          <div className="text-center py-6">
+            <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-100">
+              <FiCheckCircle size={24} />
+            </div>
+            <h3 className="text-lg font-semibold text-slate-900">
+              Reservation Request Placed!
             </h3>
-
-            <AnimatePresence mode="wait">
-              {/* ── Success state ─────────────────────────────────────────── */}
-              {submitted ? (
-                <motion.div
-                  key="success"
-                  variants={successVariants}
-                  initial="hidden"
-                  animate="visible"
-                  exit="exit"
-                  className="flex flex-col items-center justify-center py-12 text-center gap-5"
-                >
-                  <div className="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center">
-                    <FaCheckCircle className="text-emerald-400 text-3xl" />
-                  </div>
-                  <div>
-                    <h4 className="font-display text-2xl font-bold text-white mb-2">
-                      Booking Request Sent!
-                    </h4>
-                    <p className="text-slate-400 text-sm max-w-xs mx-auto leading-relaxed">
-                      Thank you,{" "}
-                      <span className="text-emerald-400 font-semibold">{name}</span>!
-                      Our team will call you at{" "}
-                      <span className="text-emerald-400 font-semibold">{phone}</span>{" "}
-                      within 2 hours to confirm your{" "}
-                      <span className="text-white font-medium">{selectedPkg.label}</span>.
-                    </p>
-                  </div>
-                  <motion.button
-                    whileHover={{ scale: 1.04 }}
-                    whileTap={{ scale: 0.96 }}
-                    onClick={handleReset}
-                    className="mt-1 px-6 py-2.5 rounded-xl border border-emerald-500/30 text-emerald-400 text-sm font-medium hover:bg-emerald-500/10 transition-colors"
-                  >
-                    Make another booking
-                  </motion.button>
-                </motion.div>
-              ) : (
-                /* ── Booking form ─────────────────────────────────────────── */
-                <motion.form
-                  key="form"
-                  variants={formVariants}
-                  initial="hidden"
-                  animate="visible"
-                  exit="exit"
-                  onSubmit={handleSubmit}
-                  className="space-y-5"
-                  noValidate
-                >
-                  {/* Date picker ------------------------------------------- */}
-                  <div>
-                    <label className={labelCls} htmlFor="booking-date">
-                      Select Date
-                    </label>
-                    <div className="relative">
-                      <DatePicker
-                        id="booking-date"
-                        selected={selectedDate}
-                        onChange={(date: Date | null) => setSelectedDate(date)}
-                        minDate={minDate}
-                        placeholderText="Choose your visit date"
-                        className={inputCls}
-                        dateFormat="EEEE, MMMM d, yyyy"
-                        autoComplete="off"
-                        required
-                      />
-                      <FaCalendarAlt className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-500 text-sm pointer-events-none" />
-                    </div>
-                  </div>
-
-                  {/* Package dropdown -------------------------------------- */}
-                  <div>
-                    <label className={labelCls} id="package-label">
-                      Package Type
-                    </label>
-                    <div className="relative" role="combobox" aria-expanded={dropdownOpen}>
-                      <button
-                        type="button"
-                        id="package-trigger"
-                        aria-haspopup="listbox"
-                        aria-labelledby="package-label package-trigger"
-                        onClick={() => setDropdownOpen((o) => !o)}
-                        className={`${inputCls} flex items-center justify-between cursor-pointer`}
-                      >
-                        <span className="text-white">{selectedPkg.label}</span>
-                        <FaChevronDown
-                          className={`text-emerald-500 text-xs transition-transform duration-200 ${
-                            dropdownOpen ? "rotate-180" : "rotate-0"
-                          }`}
-                        />
-                      </button>
-
-                      <AnimatePresence>
-                        {dropdownOpen && (
-                          <motion.ul
-                            role="listbox"
-                            aria-label="Package options"
-                            initial={{ opacity: 0, y: -8, scaleY: 0.95 }}
-                            animate={{ opacity: 1, y: 0, scaleY: 1 }}
-                            exit={{ opacity: 0, y: -8, scaleY: 0.95 }}
-                            transition={{ duration: 0.18 }}
-                            style={{ transformOrigin: "top" }}
-                            className="absolute top-full left-0 right-0 mt-1 z-50 rounded-xl glass-dark border border-emerald-500/20 shadow-2xl overflow-hidden"
-                          >
-                            {PACKAGES.map((pkg) => (
-                              <li key={pkg.value} role="option" aria-selected={packageId === pkg.value}>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setPackageId(pkg.value);
-                                    setDropdownOpen(false);
-                                  }}
-                                  className={`w-full text-left px-4 py-3 flex items-center justify-between transition-colors ${
-                                    packageId === pkg.value
-                                      ? "text-emerald-400 bg-emerald-500/8"
-                                      : "text-slate-300 hover:bg-emerald-500/10"
-                                  }`}
-                                >
-                                  <span className="text-sm font-medium">{pkg.label}</span>
-                                  <span className="text-xs text-slate-500 ml-3 shrink-0">
-                                    {pkg.price}
-                                  </span>
-                                </button>
-                              </li>
-                            ))}
-                          </motion.ul>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  </div>
-
-                  {/* Guest counter ----------------------------------------- */}
-                  <div>
-                    <label className={labelCls}>Number of Guests</label>
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl px-4 py-3">
-                        <button
-                          type="button"
-                          onClick={() => setGuests((g) => Math.max(g - 1, 1))}
-                          aria-label="Decrease guest count"
-                          className="w-7 h-7 rounded-lg bg-white/10 hover:bg-emerald-500/20 text-white font-bold flex items-center justify-center transition-colors text-sm select-none"
-                        >
-                          −
-                        </button>
-                        <span className="text-white font-bold text-lg w-8 text-center tabular-nums">
-                          {guests}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setGuests((g) => Math.min(g + 1, 50))}
-                          aria-label="Increase guest count"
-                          className="w-7 h-7 rounded-lg bg-white/10 hover:bg-emerald-500/20 text-white font-bold flex items-center justify-center transition-colors text-sm select-none"
-                        >
-                          +
-                        </button>
-                      </div>
-                      <div className="flex items-center gap-2 text-slate-400 text-sm">
-                        <FaUsers className="text-emerald-500" />
-                        <span>
-                          {guests} {guests === 1 ? "guest" : "guests"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Name -------------------------------------------------- */}
-                  <div>
-                    <label className={labelCls} htmlFor="booking-name">
-                      Your Name
-                    </label>
-                    <input
-                      id="booking-name"
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Full name"
-                      className={inputCls}
-                      autoComplete="name"
-                      required
-                    />
-                  </div>
-
-                  {/* Phone ------------------------------------------------- */}
-                  <div>
-                    <label className={labelCls} htmlFor="booking-phone">
-                      Phone Number
-                    </label>
-                    <input
-                      id="booking-phone"
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="+94 7XX XXX XXX"
-                      className={inputCls}
-                      autoComplete="tel"
-                      required
-                    />
-                  </div>
-
-                  {/* CTA buttons ------------------------------------------- */}
-                  <div className="flex flex-col sm:flex-row gap-4 pt-2">
-                    <motion.button
-                      type="submit"
-                      whileHover={{ scale: 1.03 }}
-                      whileTap={{ scale: 0.97 }}
-                      disabled={loading}
-                      className="w-full sm:flex-1 py-4 px-6 font-semibold text-sm sm:text-base rounded-xl flex items-center justify-center gap-2 tracking-wide shadow-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white transition-all duration-300 btn-glow disabled:opacity-60"
-                    >
-                      {loading ? (
-                        <>
-                          <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          Submitting…
-                        </>
-                      ) : (
-                        <>
-                          <FaAnchor className="text-xs" />
-                          Confirm Request
-                        </>
-                      )}
-                    </motion.button>
-
-                    <motion.button
-                      type="button"
-                      whileHover={{ scale: 1.03 }}
-                      whileTap={{ scale: 0.97 }}
-                      onClick={handleWhatsApp}
-                      className="w-full sm:flex-1 py-4 px-6 font-semibold text-sm sm:text-base rounded-xl flex items-center justify-center gap-2 tracking-wide shadow-lg bg-green-600/20 border border-green-500/30 hover:bg-green-500/20 text-green-400 transition-all duration-300"
-                    >
-                      <FaWhatsapp className="text-base" />
-                      WhatsApp Us
-                    </motion.button>
-                  </div>
-                </motion.form>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* ── Right column: live summary + contact + policy ──────────────── */}
-      <motion.div variants={colVariants} className="w-full flex flex-col gap-4 justify-between h-full">
-        {/* Live booking summary */}
-        <div className="glass-card rounded-3xl border border-emerald-500/20 p-6 flex-1 flex flex-col justify-between">
-          <div>
-            <h4 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-1.5">
-              <HiSparkles className="text-emerald-500" />
-              Booking Summary
-            </h4>
-            <dl className="space-y-0">
-              <div className="flex items-center justify-between w-full py-2 border-b border-white/5">
-                <dt className="text-sm text-slate-400 text-left">Package</dt>
-                <dd className="text-sm font-semibold text-white text-right font-display pl-4">
-                  {selectedPkg.label}
-                </dd>
-              </div>
-              <div className="flex items-center justify-between w-full py-2 border-b border-white/5">
-                <dt className="text-sm text-slate-400 text-left">Pricing</dt>
-                <dd className="text-sm font-bold text-emerald-400 text-right">{selectedPkg.price}</dd>
-              </div>
-              <div className="flex items-center justify-between w-full py-2 border-b border-white/5">
-                <dt className="text-sm text-slate-400 text-left">Date</dt>
-                <dd className="text-sm font-semibold text-white text-right">{formattedDate}</dd>
-              </div>
-              <div className="flex items-center justify-between w-full py-2 border-b border-white/5 last:border-0">
-                <dt className="text-sm text-slate-400 text-left">Guests</dt>
-                <dd className="text-sm font-semibold text-white text-right">{guests}</dd>
-              </div>
-            </dl>
-          </div>
-          <div className="pt-3 border-t border-white/10 mt-4">
-            <p className="text-xs text-slate-500">
-              Final pricing confirmed on call. Group rates apply for 15+ guests.
+            <p className="text-slate-500 text-xs mt-2 max-w-sm mx-auto leading-relaxed">
+              Thank you, <span className="font-semibold text-slate-800">{createdBooking.guestName}</span>. 
+              Your booking number is <span className="font-mono font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded text-sm">{createdBooking.bookingNumber}</span>.
             </p>
+            
+            <div className="my-6 p-4 rounded-xl border border-slate-100 bg-slate-50 text-left text-xs space-y-2">
+              <div className="flex justify-between">
+                <span className="text-slate-400">Package:</span>
+                <span className="font-semibold text-slate-800">{createdBooking.package?.name || activePackage?.name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Date:</span>
+                <span className="font-semibold text-slate-800">
+                  {new Date(createdBooking.bookingDate).toLocaleDateString("en-US", {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric"
+                  })}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Guests:</span>
+                <span className="font-semibold text-slate-800">{createdBooking.numberOfGuests}</span>
+              </div>
+              <div className="flex justify-between border-t border-slate-200/60 pt-2 mt-2 font-medium">
+                <span className="text-slate-600">Total Price:</span>
+                <span className="text-emerald-600 font-bold">LKR {createdBooking.totalPrice.toLocaleString("en-US")}</span>
+              </div>
+            </div>
+
+            <p className="text-slate-400 text-[11px] leading-relaxed">
+              We will call you shortly on <span className="font-medium text-slate-600">{createdBooking.guestPhone}</span> to coordinate payment details.
+            </p>
+
+            <button
+              onClick={() => {
+                setCreatedBooking(null);
+                setGuestName("");
+                setGuestPhone("");
+                setGuestEmail("");
+                setBookingDate("");
+                setNumberOfGuests(1);
+              }}
+              className="mt-6 w-full py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-medium text-xs transition-colors"
+            >
+              Place Another Booking
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleFormSubmit} className="space-y-6">
+            {submitError && (
+              <div className="p-3 bg-red-50 border border-red-100 text-red-700 rounded-xl text-xs flex items-start gap-2 font-medium">
+                <FiAlertTriangle className="flex-shrink-0 mt-0.5" size={14} />
+                <span>{submitError}</span>
+              </div>
+            )}
+
+            {/* Date Field */}
+            <div className="space-y-2">
+              <label htmlFor="bookingDate" className="text-xs font-semibold text-slate-700 block">
+                Choose Your Visit Date <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 pointer-events-none">
+                  <FiCalendar size={15} />
+                </span>
+                <input
+                  id="bookingDate"
+                  type="date"
+                  required
+                  min={new Date().toISOString().split("T")[0]}
+                  value={bookingDate}
+                  onChange={(e) => setBookingDate(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-slate-900 text-xs outline-none transition-colors"
+                />
+              </div>
+            </div>
+
+            {/* Package Selector */}
+            <div className="space-y-2">
+              <label htmlFor="packageSelect" className="text-xs font-semibold text-slate-700 block">
+                Select Package <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 pointer-events-none">
+                  <FiInfo size={15} />
+                </span>
+                <select
+                  id="packageSelect"
+                  value={selectedPackageId}
+                  onChange={(e) => setSelectedPackageId(e.target.value)}
+                  className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-slate-900 text-xs outline-none transition-colors appearance-none"
+                >
+                  {packages.map((pkg) => (
+                    <option key={pkg.id} value={pkg.id}>
+                      {pkg.name} — {pkg.pricingModel === "CUSTOM" ? "Custom quote" : `LKR ${pkg.basePrice.toLocaleString("en-US")}`}
+                    </option>
+                  ))}
+                </select>
+                <span className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 pointer-events-none">
+                  <FiChevronDown size={14} />
+                </span>
+              </div>
+            </div>
+
+            {/* Guest Counter */}
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-slate-700 block">
+                Number of Guests <span className="text-red-500">*</span>
+              </label>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center border border-slate-300 rounded-xl bg-white flex-shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setNumberOfGuests(Math.max(1, numberOfGuests - 1))}
+                    className="px-3.5 py-2 text-slate-500 hover:text-emerald-600 font-bold transition-colors select-none"
+                  >
+                    &minus;
+                  </button>
+                  <span className="px-3 font-semibold text-slate-800 text-xs">
+                    {numberOfGuests}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setNumberOfGuests(Math.min(500, numberOfGuests + 1))}
+                    className="px-3.5 py-2 text-slate-500 hover:text-emerald-600 font-bold transition-colors select-none"
+                  >
+                    &#43;
+                  </button>
+                </div>
+                <span className="text-[10px] text-slate-400">
+                  {activePackage?.pricingModel === "PER_BOAT" 
+                    ? "(Flat-rate package. Pricing doesn't change with guests)"
+                    : "(Per-person package. Pricing changes based on guest count)"}
+                </span>
+              </div>
+            </div>
+
+            {/* Name */}
+            <div className="space-y-2">
+              <label htmlFor="guestName" className="text-xs font-semibold text-slate-700 block">
+                Your Full Name <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 pointer-events-none">
+                  <FiUser size={15} />
+                </span>
+                <input
+                  id="guestName"
+                  type="text"
+                  required
+                  value={guestName}
+                  onChange={(e) => setGuestName(e.target.value)}
+                  placeholder="John Doe"
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-slate-900 text-xs outline-none transition-colors"
+                />
+              </div>
+            </div>
+
+            {/* Phone */}
+            <div className="space-y-2">
+              <label htmlFor="guestPhone" className="text-xs font-semibold text-slate-700 block">
+                Phone Number <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 pointer-events-none">
+                  <FiPhone size={15} />
+                </span>
+                <input
+                  id="guestPhone"
+                  type="tel"
+                  required
+                  value={guestPhone}
+                  onChange={(e) => setGuestPhone(e.target.value)}
+                  placeholder="e.g. +94771234567"
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-slate-900 text-xs outline-none transition-colors"
+                />
+              </div>
+            </div>
+
+            {/* Email */}
+            <div className="space-y-2">
+              <label htmlFor="guestEmail" className="text-xs font-semibold text-slate-700 block">
+                Email Address <span className="text-slate-400 font-normal">(Optional)</span>
+              </label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 pointer-events-none">
+                  <FiMail size={15} />
+                </span>
+                <input
+                  id="guestEmail"
+                  type="email"
+                  value={guestEmail}
+                  onChange={(e) => setGuestEmail(e.target.value)}
+                  placeholder="john@example.com"
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl text-slate-900 text-xs outline-none transition-colors"
+                />
+              </div>
+            </div>
+
+            <div className="text-[10px] text-slate-400 flex items-start gap-1.5 pt-1">
+              <FiHelpCircle className="flex-shrink-0 mt-0.5 text-slate-400" size={13} />
+              <span>Fields marked with asterisk (*) are required. We keep your information private.</span>
+            </div>
+          </form>
+        )}
+      </div>
+
+      {/* Right Column - Booking Summary */}
+      <div className="bg-white p-8 md:p-10 rounded-2xl border border-slate-200 lg:col-span-5 w-full flex flex-col justify-between">
+        <div>
+          <h3 className="text-sm font-semibold text-slate-900 border-b border-slate-100 pb-3 mb-4">
+            Booking Summary
+          </h3>
+
+          <div className="space-y-3.5 text-xs">
+            <div className="flex justify-between items-start">
+              <span className="text-slate-400">Selected Package:</span>
+              <span className="font-medium text-slate-900 text-right max-w-[200px]">
+                {activePackage ? activePackage.name : "None selected"}
+              </span>
+            </div>
+
+            <div className="flex justify-between items-center">
+              <span className="text-slate-400">Visit Date:</span>
+              <span className="font-medium text-slate-900">
+                {bookingDate ? new Date(bookingDate).toLocaleDateString("en-US", {
+                  weekday: "short",
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric"
+                }) : <span className="text-slate-300 italic">Not set</span>}
+              </span>
+            </div>
+
+            <div className="flex justify-between items-center">
+              <span className="text-slate-400">Guests Count:</span>
+              <span className="font-medium text-slate-900">
+                {numberOfGuests} guest{numberOfGuests > 1 ? "s" : ""}
+              </span>
+            </div>
+
+            <div className="flex justify-between items-start pt-3 border-t border-slate-100">
+              <span className="text-slate-700 font-medium">Estimated Total Price:</span>
+              <div className="text-right">
+                <span className="text-emerald-600 font-bold text-sm block">
+                  {totalPriceObj.text}
+                </span>
+                {activePackage && activePackage.pricingModel === "PER_BOAT" && (
+                  <span className="text-[9px] text-slate-400 italic block mt-0.5">
+                    (Flat rate LKR {activePackage.basePrice.toLocaleString("en-US")} per boat)
+                  </span>
+                )}
+                {activePackage && activePackage.pricingModel === "PER_PERSON" && (
+                  <span className="text-[9px] text-slate-400 italic block mt-0.5">
+                    (LKR {activePackage.basePrice.toLocaleString("en-US")} × {numberOfGuests} guest{numberOfGuests > 1 ? "s" : ""})
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Policies Checklist */}
+          <div className="mt-8 pt-6 border-t border-slate-100">
+            <h4 className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-3.5">
+              Our Reservation Policies
+            </h4>
+            <ul className="space-y-2.5">
+              {POLICIES.map((policy, i) => (
+                <li key={i} className="flex items-start gap-2 text-xs text-slate-500">
+                  <FiCheckCircle className="text-emerald-500 mt-0.5 flex-shrink-0" size={13} />
+                  <span>{policy}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
 
-        {/* Contact card */}
-        <div className="glass-card rounded-3xl border border-white/10 p-6 flex flex-col items-start w-full text-left">
-          <h4 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4 text-left">
-            Reach Us Directly
-          </h4>
-          <div className="flex flex-col gap-3 w-full text-left">
-            <a
-              href="tel:+94712345678"
-              className="flex items-center gap-3 text-sm text-slate-300 hover:text-emerald-400 transition-colors group justify-start w-full text-left"
-            >
-              <span className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:bg-emerald-500/20 transition-colors flex-shrink-0">
-                <FaPhone className="text-xs" />
-              </span>
-              <span className="text-left">+94 71 234 5678</span>
-            </a>
-            <a
-              href="https://wa.me/94712345678"
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-3 text-sm text-slate-300 hover:text-green-400 transition-colors group justify-start w-full text-left"
-            >
-              <span className="w-9 h-9 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center text-green-400 group-hover:bg-green-500/20 transition-colors flex-shrink-0">
-                <FaWhatsapp className="text-sm" />
-              </span>
-              <span className="text-left">WhatsApp Chat</span>
-            </a>
-          </div>
-        </div>
+        {/* Conversion Actions */}
+        <div className="mt-8 pt-6 border-t border-slate-100 space-y-3">
+          <button
+            type="button"
+            disabled={submitting || !!createdBooking}
+            onClick={handleFormSubmit}
+            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-3 rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-xs"
+          >
+            {submitting ? (
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <>
+                <span>Confirm Reservation Request</span>
+                <FiArrowRight size={13} />
+              </>
+            )}
+          </button>
 
-        {/* Policy card */}
-        <div className="glass-card rounded-3xl border border-white/10 p-5">
-          <ul className="space-y-2.5">
-            {POLICY_ITEMS.map((item) => (
-              <li key={item} className="flex items-center gap-2 text-xs text-slate-400">
-                <FaCheckCircle className="text-emerald-500 flex-shrink-0" />
-                {item}
-              </li>
-            ))}
-          </ul>
+          <p className="text-[10px] text-slate-400 text-center leading-relaxed">
+            Have urgent questions? Reach out directly via phone or messaging at <span className="font-semibold text-slate-600">+94 77 991 1825</span>.
+          </p>
         </div>
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   );
 }

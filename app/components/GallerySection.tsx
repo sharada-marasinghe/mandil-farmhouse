@@ -1,65 +1,38 @@
 "use client";
 
-// ─── GallerySection ───────────────────────────────────────────────────────────
-// Fetches all image objects from the Supabase "images-b" storage bucket and
-// renders them in a masonry-style grid with a lightbox viewer.
-//
-// Image URL format:
-//   https://<project>.supabase.co/storage/v1/object/public/images-b/<path>
-//
-// The bucket must be set to PUBLIC in Supabase → Storage → images-b → Settings.
-// ─────────────────────────────────────────────────────────────────────────────
-
 import Image from "next/image";
-import { motion, AnimatePresence } from "framer-motion";
-import { HiSparkles } from "react-icons/hi";
-import { FaExpand, FaTimes, FaChevronLeft, FaChevronRight, FaImages } from "react-icons/fa";
+import { HiOutlineSparkles } from "react-icons/hi";
+import { FiMaximize2, FiX, FiChevronLeft, FiChevronRight, FiImage } from "react-icons/fi";
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/utils/supabase/client";
 
-// ── Constants ─────────────────────────────────────────────────────────────────
-
 const BUCKET_NAME = "images-b";
-
-/** Max images to display — keeps the grid performant */
 const MAX_GALLERY_IMAGES = 12;
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
 interface GalleryImage {
-  /** Public CDN URL */
   url: string;
-  /** Filename used as alt text fallback */
   name: string;
-  /** Grid span class for masonry effect — assigned by position */
   span: string;
 }
 
-// ── Span pattern for the masonry grid (repeats for all images) ────────────────
-// Positions 0, 5, 10, … get a large 2×2 hero tile; all others get 1×1.
 const SPAN_PATTERN: string[] = [
-  "col-span-2 row-span-2", // 0 — hero
-  "col-span-1 row-span-1", // 1
-  "col-span-1 row-span-1", // 2
-  "col-span-1 row-span-1", // 3
-  "col-span-1 row-span-1", // 4
+  "col-span-2 row-span-2",
+  "col-span-1 row-span-1",
+  "col-span-1 row-span-1",
+  "col-span-1 row-span-1",
+  "col-span-1 row-span-1",
 ];
 
 function getSpan(index: number): string {
   return SPAN_PATTERN[index % SPAN_PATTERN.length] ?? "col-span-1 row-span-1";
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-/** Convert a storage file name to a human-readable alt text */
 function nameToAlt(name: string): string {
   return name
-    .replace(/\.[^/.]+$/, "") // strip extension
-    .replace(/[-_]/g, " ")   // replace dashes/underscores with spaces
-    .replace(/\b\w/g, (c) => c.toUpperCase()); // Title Case
+    .replace(/\.[^/.]+$/, "")
+    .replace(/[-_]/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 }
-
-// ── Skeleton loader ───────────────────────────────────────────────────────────
 
 function GallerySkeleton() {
   return (
@@ -67,14 +40,12 @@ function GallerySkeleton() {
       {Array.from({ length: 5 }).map((_, i) => (
         <div
           key={i}
-          className={`rounded-2xl bg-white/5 animate-pulse ${getSpan(i)}`}
+          className={`rounded-2xl bg-slate-100 animate-pulse ${getSpan(i)}`}
         />
       ))}
     </div>
   );
 }
-
-// ── Component ─────────────────────────────────────────────────────────────────
 
 export default function GallerySection() {
   const [images, setImages] = useState<GalleryImage[]>([]);
@@ -82,13 +53,10 @@ export default function GallerySection() {
   const [error, setError] = useState<string | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
-  // ── Fetch images from Supabase storage ─────────────────────────────────────
-
   useEffect(() => {
     async function fetchGalleryImages() {
       try {
         const supabase = createClient();
-
         const { data, error: storageError } = await supabase.storage
           .from(BUCKET_NAME)
           .list("", {
@@ -106,12 +74,10 @@ export default function GallerySection() {
           return;
         }
 
-        // Filter to image file types only
         const imageFiles = data.filter((file) =>
           /\.(jpg|jpeg|png|webp|avif|gif)$/i.test(file.name)
         );
 
-        // Build public CDN URLs
         const galleryImages: GalleryImage[] = imageFiles.map((file, index) => {
           const { data: urlData } = supabase.storage
             .from(BUCKET_NAME)
@@ -125,9 +91,8 @@ export default function GallerySection() {
         });
 
         setImages(galleryImages);
-      } catch (err: unknown) {
-        const message =
-          err instanceof Error ? err.message : "Failed to load gallery images.";
+      } catch (err: any) {
+        const message = err.message || "Failed to load gallery images.";
         console.error("[GallerySection] Supabase storage error:", err);
         setError(message);
       } finally {
@@ -137,8 +102,6 @@ export default function GallerySection() {
 
     fetchGalleryImages();
   }, []);
-
-  // ── Lightbox keyboard navigation ────────────────────────────────────────────
 
   const openLightbox = useCallback((index: number) => {
     setLightboxIndex(index);
@@ -173,90 +136,63 @@ export default function GallerySection() {
     return () => window.removeEventListener("keydown", handleKey);
   }, [lightboxIndex, closeLightbox, goNext, goPrev]);
 
-  // ── Render ──────────────────────────────────────────────────────────────────
-
-  const activeLightboxImage =
-    lightboxIndex !== null ? images[lightboxIndex] : null;
+  const activeLightboxImage = lightboxIndex !== null ? images[lightboxIndex] : null;
 
   return (
     <section
       id="gallery"
-      className="w-full flex flex-col items-center py-20 md:py-28 px-4 sm:px-6 lg:px-8 bg-[#0a1628] relative overflow-hidden"
+      className="w-full bg-white border-b border-slate-100"
     >
-      {/* Top accent rule */}
-      <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-teal-500/30 to-transparent" />
-
-      {/* ── Content boundary ─────────────────────────────────────────────── */}
-      <div className="relative w-full max-w-6xl mx-auto flex flex-col items-center">
-
-        {/* ── Section header ───────────────────────────────────────────────── */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.7 }}
-          className="w-full max-w-3xl mx-auto flex flex-col items-center text-center justify-center mb-12 md:mb-16"
-        >
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-400 text-xs font-semibold tracking-widest uppercase mb-4">
-            <HiSparkles /> Gallery
+      <div className="w-full max-w-6xl mx-auto px-4 md:px-6 py-16 flex flex-col items-center text-center">
+        
+        {/* Section Header */}
+        <div className="w-full max-w-3xl mx-auto flex flex-col items-center text-center justify-center mb-12">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-800 text-xs font-semibold tracking-wider uppercase mb-4">
+            <HiOutlineSparkles size={14} />
+            Gallery
           </div>
-          <h2 className="font-display text-4xl sm:text-5xl font-bold text-white mb-4">
-            Glimpses of <span className="text-gradient">Paradise</span>
+          <h2 className="text-3xl font-bold text-slate-900 mb-4 tracking-tight">
+            Glimpses of Paradise
           </h2>
-          <p className="text-slate-400 text-lg max-w-xl">
-            Every corner of Mandil Farmhouse is a frame-worthy moment waiting to
-            be captured.
+          <p className="text-slate-500 text-sm max-w-xl">
+            Every corner of Mandil Farmhouse is a frame-worthy moment waiting to be captured.
           </p>
-        </motion.div>
+        </div>
 
-        {/* ── Loading skeleton ─────────────────────────────────────────────── */}
+        {/* Loading skeleton */}
         {loading && <GallerySkeleton />}
 
-        {/* ── Error state ──────────────────────────────────────────────────── */}
+        {/* Error state */}
         {!loading && error && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex flex-col items-center gap-3 py-16 text-center"
-          >
-            <div className="w-12 h-12 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
-              <FaImages className="text-red-400 text-lg" />
+          <div className="flex flex-col items-center gap-3 py-12 text-center">
+            <div className="w-12 h-12 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center">
+              <FiImage className="text-red-500 text-lg" />
             </div>
-            <p className="text-slate-400 text-sm max-w-xs">
+            <p className="text-slate-500 text-xs max-w-xs">
               Could not load gallery images. Please try again later.
             </p>
-          </motion.div>
+          </div>
         )}
 
-        {/* ── Empty bucket state ───────────────────────────────────────────── */}
+        {/* Empty bucket state */}
         {!loading && !error && images.length === 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex flex-col items-center gap-3 py-16 text-center"
-          >
-            <div className="w-12 h-12 rounded-xl bg-slate-700/50 border border-slate-600/30 flex items-center justify-center">
-              <FaImages className="text-slate-500 text-lg" />
+          <div className="flex flex-col items-center gap-3 py-12 text-center">
+            <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center">
+              <FiImage className="text-slate-400 text-lg" />
             </div>
-            <p className="text-slate-500 text-sm">
-              No gallery images yet. Upload photos to the{" "}
-              <code className="text-emerald-400 font-mono text-xs">images-b</code>{" "}
-              bucket in Supabase.
+            <p className="text-slate-400 text-xs">
+              No gallery images yet. Upload photos to the <code className="text-emerald-600 font-mono text-xs">images-b</code> bucket in Supabase.
             </p>
-          </motion.div>
+          </div>
         )}
 
-        {/* ── Photo grid ───────────────────────────────────────────────────── */}
+        {/* Photo grid */}
         {!loading && !error && images.length > 0 && (
           <div className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 auto-rows-[180px]">
             {images.map((image, i) => (
-              <motion.div
+              <div
                 key={image.url}
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.08, duration: 0.5 }}
-                className={`relative rounded-2xl overflow-hidden cursor-pointer group ${image.span}`}
+                className={`relative rounded-2xl overflow-hidden cursor-pointer group border border-slate-100 ${image.span}`}
                 onClick={() => openLightbox(i)}
                 role="button"
                 tabIndex={0}
@@ -267,106 +203,89 @@ export default function GallerySection() {
                   src={image.url}
                   alt={nameToAlt(image.name)}
                   fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                  className="object-cover group-hover:scale-102 transition-transform duration-500 ease-out"
                   sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
                 />
                 {/* Hover overlay */}
-                <div className="absolute inset-0 bg-[#0a1628]/0 group-hover:bg-[#0a1628]/40 transition-all duration-300" />
+                <div className="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/20 transition-all duration-300" />
                 {/* Expand icon */}
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
-                  <div className="w-10 h-10 rounded-full glass border border-white/30 flex items-center justify-center">
-                    <FaExpand className="text-white text-sm" />
+                  <div className="w-9 h-9 rounded-full bg-white/90 border border-slate-200 flex items-center justify-center shadow-xs">
+                    <FiMaximize2 className="text-slate-700 text-sm" />
                   </div>
                 </div>
                 {/* Image counter badge for hero tile */}
                 {i === 0 && images.length > 1 && (
-                  <div className="absolute bottom-3 right-3 px-2.5 py-1 rounded-lg bg-black/50 backdrop-blur-sm text-white text-xs font-semibold">
+                  <div className="absolute bottom-3 right-3 px-2.5 py-1 rounded-lg bg-slate-900/60 backdrop-blur-xs text-white text-[10px] font-semibold">
                     {images.length} photos
                   </div>
                 )}
-              </motion.div>
+              </div>
             ))}
           </div>
         )}
       </div>
 
-      {/* ── Lightbox ─────────────────────────────────────────────────────── */}
-      <AnimatePresence>
-        {activeLightboxImage && lightboxIndex !== null && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/92 backdrop-blur-sm p-4"
-            onClick={closeLightbox}
-            aria-label="Gallery lightbox"
-            role="dialog"
-            aria-modal="true"
+      {/* Lightbox Modal */}
+      {activeLightboxImage && lightboxIndex !== null && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/90 backdrop-blur-xs p-4"
+          onClick={closeLightbox}
+          role="dialog"
+          aria-modal="true"
+        >
+          {/* Lightbox image container */}
+          <div
+            className="relative max-w-5xl w-full max-h-[85vh] aspect-video rounded-xl overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
           >
-            {/* Lightbox image */}
-            <motion.div
-              key={lightboxIndex}
-              initial={{ opacity: 0, scale: 0.88 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.92 }}
-              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-              className="relative max-w-5xl w-full max-h-[85vh] aspect-video rounded-2xl overflow-hidden shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Image
-                src={activeLightboxImage.url}
-                alt={nameToAlt(activeLightboxImage.name)}
-                fill
-                className="object-contain"
-                sizes="90vw"
-                priority
-              />
-            </motion.div>
+            <Image
+              src={activeLightboxImage.url}
+              alt={nameToAlt(activeLightboxImage.name)}
+              fill
+              className="object-contain"
+              sizes="90vw"
+              priority
+            />
+          </div>
 
-            {/* Close button */}
+          {/* Close button */}
+          <button
+            onClick={closeLightbox}
+            aria-label="Close gallery lightbox"
+            className="absolute top-5 right-5 w-9 h-9 rounded-full bg-white/90 border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-white transition-colors z-10 shadow-sm"
+          >
+            <FiX className="text-sm" />
+          </button>
+
+          {/* Prev button */}
+          {images.length > 1 && (
             <button
-              onClick={closeLightbox}
-              aria-label="Close gallery lightbox"
-              className="absolute top-5 right-5 w-10 h-10 rounded-full glass border border-white/20 flex items-center justify-center text-white hover:bg-white/10 transition-colors z-10"
+              onClick={(e) => { e.stopPropagation(); goPrev(); }}
+              aria-label="Previous image"
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-white transition-colors z-10 shadow-sm"
             >
-              <FaTimes className="text-sm" />
+              <FiChevronLeft className="text-sm" />
             </button>
+          )}
 
-            {/* Prev button */}
-            {images.length > 1 && (
-              <button
-                onClick={(e) => { e.stopPropagation(); goPrev(); }}
-                aria-label="Previous image"
-                className="absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full glass border border-white/20 flex items-center justify-center text-white hover:bg-white/10 transition-colors z-10"
-              >
-                <FaChevronLeft className="text-sm" />
-              </button>
-            )}
+          {/* Next button */}
+          {images.length > 1 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); goNext(); }}
+              aria-label="Next image"
+              className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-white transition-colors z-10 shadow-sm"
+            >
+              <FiChevronRight className="text-sm" />
+            </button>
+          )}
 
-            {/* Next button */}
-            {images.length > 1 && (
-              <button
-                onClick={(e) => { e.stopPropagation(); goNext(); }}
-                aria-label="Next image"
-                className="absolute right-16 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full glass border border-white/20 flex items-center justify-center text-white hover:bg-white/10 transition-colors z-10"
-              >
-                <FaChevronRight className="text-sm" />
-              </button>
-            )}
-
-            {/* Image counter */}
-            <div className="absolute bottom-5 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full bg-black/50 backdrop-blur-sm text-white text-xs font-semibold">
-              {lightboxIndex + 1} / {images.length}
-            </div>
-
-            {/* Filename caption */}
-            <div className="absolute bottom-12 left-1/2 -translate-x-1/2 text-slate-400 text-xs max-w-xs text-center truncate">
-              {nameToAlt(activeLightboxImage.name)}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          {/* Image counter */}
+          <div className="absolute bottom-5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-white/90 border border-slate-200 text-slate-800 text-xs font-semibold shadow-sm">
+            {lightboxIndex + 1} / {images.length}
+          </div>
+        </div>
+      )}
     </section>
   );
 }

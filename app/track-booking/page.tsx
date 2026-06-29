@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 
 export default function TrackBookingPage() {
   return (
-    <main className="w-full min-h-screen overflow-x-hidden flex flex-col items-center bg-[#0a1628]">
+    <main className="w-full min-h-screen overflow-x-hidden flex flex-col items-center bg-white">
       <Navbar />
       <BookingTracker />
       <Footer />

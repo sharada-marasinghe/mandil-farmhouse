@@ -1,60 +1,25 @@
 "use client";
 
-import { useRef } from "react";
 import Image from "next/image";
-import { motion, useScroll, useTransform, Variants } from "framer-motion";
-import { FaAnchor, FaCalendarCheck, FaChevronDown } from "react-icons/fa";
-import { HiSparkles } from "react-icons/hi";
-
-const floatVariants: Variants = {
-  initial: { y: 0 },
-  animate: {
-    y: [-10, 10, -10],
-    transition: { duration: 5, repeat: Infinity, ease: "easeInOut" },
-  },
-};
-
-const floatDelayedVariants: Variants = {
-  initial: { y: 0 },
-  animate: {
-    y: [8, -8, 8],
-    transition: { duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1 },
-  },
-};
-
-const textReveal: Variants = {
-  hidden: { opacity: 0, y: 40 },
-  visible: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] as const, delay: i * 0.15 },
-  }),
-};
+import { FiAnchor, FiCalendar, FiChevronDown } from "react-icons/fi";
+import { HiOutlineSparkles } from "react-icons/hi";
 
 export default function Hero() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start start", "end start"],
-  });
-  const opacityOverlay = useTransform(scrollYProgress, [0, 0.6], [1, 0]);
-
   const handleScroll = (id: string) => {
-    document.querySelector(id)?.scrollIntoView({ behavior: "smooth" });
+    const el = document.querySelector(id);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   };
 
   return (
     <section
-      ref={containerRef}
       id="hero"
-      className="relative h-screen min-h-[600px] w-full flex items-center justify-center overflow-hidden"
+      className="relative h-screen min-h-[600px] w-full flex items-center justify-center overflow-hidden bg-slate-50"
       style={{ minHeight: "100dvh" }}
     >
-      {/* Background Image — explicit inset ensures fill image renders */}
-      <div
-        className="absolute inset-0 z-0"
-        style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, width: "100%", height: "100%" }}
-      >
+      {/* Background Image */}
+      <div className="absolute inset-0 z-0 w-full h-full">
         <Image
           src="/hero-bg.png"
           alt="Bolgoda Lake aerial view at golden hour sunset"
@@ -63,179 +28,75 @@ export default function Hero() {
           quality={90}
           className="object-cover object-center"
           sizes="100vw"
-          style={{ objectFit: "cover" }}
         />
       </div>
 
-      {/* Hero Overlay */}
-      <motion.div
-        style={{ opacity: opacityOverlay }}
-        className="absolute inset-0 z-10 hero-overlay"
-      />
+      {/* Light Gradient Overlay for readability */}
+      <div className="absolute inset-0 z-10 bg-gradient-to-r from-white/95 via-white/80 to-transparent md:to-white/10" />
 
-      {/* Animated particles / floating orbs */}
-      <div className="absolute inset-0 z-10 overflow-hidden pointer-events-none">
-        <motion.div
-          variants={floatVariants}
-          initial="initial"
-          animate="animate"
-          className="absolute top-1/4 left-1/6 w-64 h-64 rounded-full bg-emerald-500/10 blur-3xl"
-        />
-        <motion.div
-          variants={floatDelayedVariants}
-          initial="initial"
-          animate="animate"
-          className="absolute bottom-1/3 right-1/6 w-80 h-80 rounded-full bg-teal-500/10 blur-3xl"
-        />
-        <motion.div
-          variants={floatVariants}
-          initial="initial"
-          animate="animate"
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-emerald-700/5 blur-3xl"
-          style={{ animationDelay: "2s" }}
-        />
-      </div>
-
-      {/* Hero Content — Standardized container to match unified vertical grid */}
-      <div className="relative z-20 w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center text-center py-20 pt-28">
+      {/* Hero Content */}
+      <div className="relative z-20 w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center md:items-start text-center md:text-left py-20 pt-28">
         {/* Badge */}
-        <motion.div
-          custom={0}
-          variants={textReveal}
-          initial="hidden"
-          animate="visible"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-emerald-500/30 mb-5"
-        >
-          <HiSparkles className="text-gold-400 text-sm" />
-          <span className="text-sm font-medium text-emerald-300 tracking-wide">
-            Sri Lanka&apos;s Premier Lakeside Escape
-          </span>
-          <HiSparkles className="text-gold-400 text-sm" />
-        </motion.div>
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-800 text-xs font-semibold tracking-wide mb-6">
+          <HiOutlineSparkles className="text-emerald-600" size={14} />
+          <span>Sri Lanka&apos;s Premier Lakeside Escape</span>
+        </div>
 
         {/* Main Headline */}
-        <motion.h1
-          custom={1}
-          variants={textReveal}
-          initial="hidden"
-          animate="visible"
-          className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.1] mb-6"
-        >
-          <span className="text-white">Escape to</span>
-          <br />
-          <span className="shimmer-text">Bolgoda&apos;s Finest</span>
-          <br />
-          <span className="text-white">Lakeside Retreat</span>
-        </motion.h1>
+        <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold leading-[1.15] text-slate-900 mb-6 max-w-2xl">
+          Escape to Bolgoda&apos;s <span className="text-emerald-700">Finest</span> Lakeside Retreat
+        </h1>
 
         {/* Subtitle */}
-        <motion.p
-          custom={2}
-          variants={textReveal}
-          initial="hidden"
-          animate="visible"
-          className="text-lg sm:text-xl md:text-2xl text-slate-300 font-light max-w-2xl mx-auto mb-4 leading-relaxed"
-        >
-          Discover{" "}
-          <span className="text-emerald-400 font-medium">Mandil Farmhouse</span>{" "}
-          — where tropical serenity meets luxury boat safaris, traditional feasts,
-          and unforgettable family moments on Bolgoda Lake.
-        </motion.p>
-
-        {/* Sub-badge */}
-        <motion.div
-          custom={3}
-          variants={textReveal}
-          initial="hidden"
-          animate="visible"
-          className="hidden sm:flex items-center justify-center gap-6 mb-8 text-sm text-slate-400"
-        >
-          {["Luxury Pontoon Safaris", "Family Day Packages", "Sunset Views"].map((item, i) => (
-            <span key={i} className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              {item}
-            </span>
-          ))}
-        </motion.div>
+        <p className="text-base sm:text-lg text-slate-600 font-normal max-w-xl mb-8 leading-relaxed">
+          Discover <span className="text-emerald-700 font-semibold">Mandil Farmhouse</span> — where tropical serenity meets luxury boat safaris, traditional feasts, and unforgettable family moments on Bolgoda Lake.
+        </p>
 
         {/* CTA Buttons */}
-        <motion.div
-          custom={4}
-          variants={textReveal}
-          initial="hidden"
-          animate="visible"
-          className="flex flex-col sm:flex-row items-center justify-center gap-4"
-        >
-          <motion.button
-            whileHover={{ scale: 1.06, y: -2 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={() => handleScroll("#safaris")}
-            className="group flex items-center gap-3 px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold text-lg transition-all duration-300 btn-glow shadow-xl"
+        <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+          <button
+            onClick={() => handleScroll("#packages")}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition-colors shadow-sm"
           >
-            <FaAnchor className="text-base group-hover:rotate-12 transition-transform duration-300" />
-            Explore Safaris
-            <motion.span
-              animate={{ x: [0, 4, 0] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-              className="text-emerald-300"
-            >
-              →
-            </motion.span>
-          </motion.button>
+            <FiAnchor size={16} />
+            <span>Explore Safaris</span>
+          </button>
 
-          <motion.button
-            whileHover={{ scale: 1.06, y: -2 }}
-            whileTap={{ scale: 0.97 }}
+          <button
             onClick={() => handleScroll("#booking")}
-            className="group flex items-center gap-3 px-8 py-4 rounded-2xl glass border border-emerald-500/40 hover:border-emerald-400/60 hover:bg-emerald-500/10 text-white font-semibold text-lg transition-all duration-300"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-sm transition-colors"
           >
-            <FaCalendarCheck className="text-emerald-400 group-hover:scale-110 transition-transform duration-300" />
-            Check Availability
-          </motion.button>
-        </motion.div>
+            <FiCalendar size={16} />
+            <span>Check Availability</span>
+          </button>
+        </div>
 
-        {/* Stats row */}
-        <motion.div
-          custom={5}
-          variants={textReveal}
-          initial="hidden"
-          animate="visible"
-          className="flex items-center justify-center gap-6 sm:gap-8 mt-8 sm:mt-14 pt-6 sm:pt-8 border-t border-white/10 w-full max-w-2xl"
-        >
+        {/* Mini Stats row */}
+        <div className="flex items-center justify-center md:justify-start gap-8 mt-12 pt-8 border-t border-slate-200/80 w-full max-w-xl">
           {[
             { value: "500+", label: "Happy Guests" },
             { value: "4.9★", label: "Google Rating" },
-            { value: "15km²", label: "Lake to Explore" },
+            { value: "15km²", label: "Lake Area" },
           ].map((stat) => (
-            <div key={stat.label} className="text-center flex-1">
-              <div className="text-2xl sm:text-3xl font-bold text-gradient font-display">
+            <div key={stat.label} className="flex-1 text-center md:text-left">
+              <div className="text-xl font-bold text-slate-900">
                 {stat.value}
               </div>
-              <div className="text-xs sm:text-sm text-slate-400 mt-0.5 font-medium">{stat.label}</div>
+              <div className="text-xs text-slate-500 mt-0.5 font-medium">{stat.label}</div>
             </div>
           ))}
-        </motion.div>
+        </div>
       </div>
 
       {/* Scroll indicator */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 2, duration: 0.8 }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2"
-      >
-        <span className="text-xs text-slate-400 tracking-widest uppercase font-medium">
-          Scroll
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-1 cursor-pointer" onClick={() => handleScroll("#packages")}>
+        <span className="text-[10px] text-slate-400 tracking-widest uppercase font-semibold">
+          Scroll Down
         </span>
-        <motion.div
-          animate={{ y: [0, 6, 0] }}
-          transition={{ duration: 1.5, repeat: Infinity }}
-        >
-          <FaChevronDown className="text-emerald-400 text-base" />
-        </motion.div>
-      </motion.div>
+        <FiChevronDown className="text-emerald-600 animate-bounce" size={16} />
+      </div>
 
-      {/* Bottom wave shape */}
+      {/* Bottom wave shape filled with clean slate-50 to blend with packages section */}
       <div className="absolute bottom-0 left-0 right-0 z-20">
         <svg
           viewBox="0 0 1440 80"
@@ -243,10 +104,11 @@ export default function Hero() {
           xmlns="http://www.w3.org/2000/svg"
           className="w-full"
           preserveAspectRatio="none"
+          style={{ height: "40px" }}
         >
           <path
             d="M0,40 C360,80 1080,0 1440,40 L1440,80 L0,80 Z"
-            fill="#0a1628"
+            fill="#f8fafc"
           />
         </svg>
       </div>

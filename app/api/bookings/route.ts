@@ -337,3 +337,59 @@ export async function POST(request: NextRequest): Promise<Response> {
     );
   }
 }
+
+// GET /api/bookings — Track booking by number
+export async function GET(request: NextRequest): Promise<Response> {
+  const { searchParams } = new URL(request.url);
+  const bookingNumber = searchParams.get("bookingNumber");
+
+  if (!bookingNumber) {
+    return Response.json(
+      { success: false, error: "Booking number query parameter is required." },
+      { status: 400 }
+    );
+  }
+
+  try {
+    const booking = await db.booking.findUnique({
+      where: { bookingNumber },
+      include: {
+        package: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    });
+
+    if (!booking) {
+      return Response.json(
+        { success: false, error: `No booking found for "${bookingNumber}". Please double-check the number and try again.` },
+        { status: 404 }
+      );
+    }
+
+    const serialisedBooking = {
+      ...booking,
+      totalPrice: booking.totalPrice.toNumber(),
+      packageName: booking.package.name,
+      bookingDate: booking.bookingDate.toISOString(),
+      createdAt: booking.createdAt.toISOString(),
+      updatedAt: booking.updatedAt.toISOString(),
+    };
+
+    return Response.json(
+      { success: true, booking: serialisedBooking },
+      { status: 200 }
+    );
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "An unexpected error occurred.";
+    console.error("[GET /api/bookings] Database error:", error);
+    return Response.json(
+      { success: false, error: "Failed to retrieve booking.", detail: message },
+      { status: 500 }
+    );
+  }
+}
+

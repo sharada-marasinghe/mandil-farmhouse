@@ -100,10 +100,10 @@ export default function RootLayout({
           rel="stylesheet"
         />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="#0a1628" />
+        <meta name="theme-color" content="#10b981" />
       </head>
       <body
-        className="w-full overflow-x-hidden font-sans antialiased bg-[#0a1628]"
+        className="w-full overflow-x-hidden font-sans antialiased bg-white text-slate-600"
         suppressHydrationWarning={true}
       >
         {children}
