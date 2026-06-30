@@ -15,14 +15,14 @@ export default async function AdminDashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-[#060b13] text-slate-100 flex flex-col">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
       {/* Admin Navbar */}
       <AdminNavbar user={session.user} />
 
-      {/* Main Content Area */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Full width sidebar container */}
+      <div className="flex-1 flex flex-row w-full overflow-x-hidden">
         {children}
-      </main>
+      </div>
     </div>
   );
 }

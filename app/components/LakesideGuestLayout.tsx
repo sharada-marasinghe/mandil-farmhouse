@@ -827,7 +827,7 @@ export default function LakesideGuestLayout() {
         <div className="w-full max-w-6xl mx-auto px-4 md:px-6 flex flex-col items-center text-center">
           
           {/* Stats Row */}
-          <div className="w-full grid grid-cols-2 md:grid-cols-4 gap-6 py-8 px-6 bg-slate-100 rounded-2xl mb-16 text-center">
+          <div className="w-full grid grid-cols-2 md:grid-cols-4 gap-6 py-8 px-6 bg-slate-50 rounded-2xl my-12 text-center">
             {STATS.map((stat) => (
               <div key={stat.label} className="text-center flex flex-col items-center justify-center">
                 <div className="text-3xl font-extrabold text-emerald-600 mb-1">

@@ -37,6 +37,7 @@ model Package {
   basePrice    Decimal      @db.Decimal(10, 2) // LKR — the atomic price unit
   pricingModel PricingModel @default(PER_PERSON)
   isActive     Boolean      @default(true)
+  images       String[]     @default([])
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
@@ -105,4 +106,32 @@ model User {
 
   @@map("users")
 }
+
+enum AmenityBilling {
+  PER_HOUR
+  FLAT_RATE
+  PER_DAY
+}
+
+model Amenity {
+  id          String         @id @default(cuid())
+  name        String         @unique
+  price       Decimal        @db.Decimal(10, 2)
+  billingType AmenityBilling @default(FLAT_RATE)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@map("amenities")
+}
+
+model Activity {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("activities")
+}
+
 

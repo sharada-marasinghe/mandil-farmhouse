@@ -22,7 +22,7 @@
 
 import { type NextRequest } from "next/server";
 import { db } from "@/lib/db";
-import { BookingStatus } from "@/app/generated/prisma";
+import { BookingStatus } from "@/app/generated/prisma/enums";
 import { auth } from "@/auth";
 
 

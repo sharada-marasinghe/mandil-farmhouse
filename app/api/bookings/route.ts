@@ -17,7 +17,7 @@
 
 import { type NextRequest } from "next/server";
 import { db } from "@/lib/db";
-import { PricingModel } from "@/app/generated/prisma";
+import { PricingModel } from "@/app/generated/prisma/enums";
 
 // ── Runtime config ──────────────────────────────────────────────────────────
 // Force Node.js runtime so Prisma (which requires Node APIs) always runs in

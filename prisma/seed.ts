@@ -1,4 +1,4 @@
-import { PrismaClient } from "../app/generated/prisma";
+import { PrismaClient } from "../app/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
@@ -29,17 +29,80 @@ async function main() {
     update: {
       password: passwordHash,
       name: "Administrator",
-      role: "admin",
+      role: "SUPERADMIN",
     },
     create: {
       username,
       password: passwordHash,
       name: "Administrator",
-      role: "admin",
+      role: "SUPERADMIN",
     },
   });
 
   console.log(`[Seed] Superadmin user initialized: ${user.username} (ID: ${user.id})`);
+
+  console.log(`[Seed] Seeding sample amenities...`);
+  const amenitiesToSeed = [
+    {
+      name: "Luxury Pontoon Boat",
+      price: 15000,
+      billingType: "PER_HOUR" as const,
+    },
+    {
+      name: "BBQ Machine & Charcoal Setup",
+      price: 3500,
+      billingType: "FLAT_RATE" as const,
+    },
+    {
+      name: "JBL PartyBox Speaker",
+      price: 3000,
+      billingType: "PER_DAY" as const,
+    },
+  ];
+
+  for (const amenity of amenitiesToSeed) {
+    const record = await prisma.amenity.upsert({
+      where: { name: amenity.name },
+      update: {
+        price: amenity.price,
+        billingType: amenity.billingType,
+      },
+      create: {
+        name: amenity.name,
+        price: amenity.price,
+        billingType: amenity.billingType,
+      },
+    });
+    console.log(` - Amenity upserted: ${record.name} (${record.price} LKR, ${record.billingType})`);
+  }
+
+  console.log(`[Seed] Seeding sample activities...`);
+  const activitiesToSeed = [
+    {
+      name: "Lake Fishing Hooks & Bait",
+      description: "Spend a relaxing afternoon fishing on the waters of Bolgoda Lake. Standard fishing rods, high-quality hooks, and fresh bait are provided. Perfect for family relaxation.",
+    },
+    {
+      name: "Jet Ski Ride",
+      description: "Feel the rush of adrenaline on a high-speed jet ski adventure across Bolgoda Lake. Life jackets and professional safety briefs are provided.",
+    },
+  ];
+
+  for (const activity of activitiesToSeed) {
+    const record = await prisma.activity.upsert({
+      where: { name: activity.name },
+      update: {
+        description: activity.description,
+      },
+      create: {
+        name: activity.name,
+        description: activity.description,
+      },
+    });
+    console.log(` - Activity upserted: ${record.name}`);
+  }
+
+  console.log(`[Seed] Seeding complete!`);
 }
 
 main()

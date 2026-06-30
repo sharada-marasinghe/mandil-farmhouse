@@ -15,7 +15,7 @@
 // Next.js + Prisma pattern: see https://www.prisma.io/docs/guides/nextjs
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { PrismaClient } from "@/app/generated/prisma";
+import { PrismaClient } from "@/app/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 // ── Validate env at startup ───────────────────────────────────────────────────
