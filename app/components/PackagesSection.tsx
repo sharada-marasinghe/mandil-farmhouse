@@ -1,294 +1,387 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FiUsers, FiClock, FiImage } from "react-icons/fi";
-import { HiSparkles } from "react-icons/hi";
+import { LuClock, LuUsers, LuSparkles, LuCheck } from "react-icons/lu";
+import { motion, Variants } from "framer-motion";
+import Image from "next/image";
+import Link from "next/link";
 
-interface LocalPackageMeta {
-  duration: string;
-  capacity: string;
-  isPopular: boolean;
-  images: string[];
-  assets?: string[];
-  activities?: string[];
-}
-
-interface Package {
+// Define strict TypeScript types for the Package interface
+export interface Package {
   id: string;
   name: string;
-  description: string | null;
-  basePrice: number;
-  pricingModel: string;
-  isActive: boolean;
-  images: string[];
+  description: string;
+  price: number;
+  priceType: string; // e.g., "Group", "Person"
+  duration: string;
+  capacity: string;
+  image: string;
+  badge: string;
+  features: string[];
+  isPopular: boolean;
+  featured: boolean;
 }
 
-// Default fallback packages when no popular packages exist in the database yet
-const FALLBACK_POPULAR_PACKAGES = [
+// Fallback mock packages if the API fails or is empty
+const FALLBACK_POPULAR_PACKAGES: Package[] = [
   {
     id: "boat-safari",
     name: "Exclusive Bolgoda Boat Safari",
     description: "Glide across the peaceful waters of Bolgoda Lake on a premium private pontoon. Experience stunning views, spot local wildlife, and capture the perfect sunset.",
-    basePrice: 15000,
-    pricingModel: "PER_BOAT",
-    isActive: true,
-    images: ["/boat-safari.png", "/family-package.png", "/sunset-canopy.png"],
-    meta: {
-      duration: "2 Hours",
-      capacity: "Up to 12 Guests",
-      isPopular: true,
-      assets: ["Luxury Pontoon Boat", "JBL PartyBox Speaker"],
-      activities: ["Lake Fishing Hooks & Bait", "Jet Ski Ride"]
-    }
+    price: 15000,
+    priceType: "Group",
+    duration: "2 Hours",
+    capacity: "Up to 12 Guests",
+    image: "/boat-safari.png",
+    badge: "PREMIUM SAFARI",
+    features: ["Luxury Pontoon Boat", "JBL PartyBox Speaker", "Safety Gear & Crew Included"],
+    isPopular: true,
+    featured: true
   },
   {
     id: "family-package",
     name: "Ultimate Family Day-Out",
     description: "Spend a relaxing day by the lakeside. Package includes full-day access to our private pool, outdoor lawn games, a scenic boat ride, and a traditional buffet lunch.",
-    basePrice: 3500,
-    pricingModel: "PER_PERSON",
-    isActive: true,
-    images: ["/family-package.png", "/sunset-canopy.png", "/boat-safari.png"],
-    meta: {
-      duration: "8 Hours",
-      capacity: "Min 5 - Max 20 Guests",
-      isPopular: true,
-      assets: ["BBQ Machine & Charcoal Setup"],
-      activities: ["Lake Fishing Hooks & Bait"]
-    }
+    price: 3500,
+    priceType: "Person",
+    duration: "8 Hours",
+    capacity: "Min 5 - Max 20 Guests",
+    image: "/family-package.png",
+    badge: "ALL-INCLUSIVE",
+    features: ["Traditional Buffet Lunch", "Swimming Pool Access", "Lawn Games & Canoeing"],
+    isPopular: true,
+    featured: false
   },
   {
     id: "sunset-canopy",
     name: "Lakeside Sunset Canopy",
     description: "An intimate, beautifully styled lakeside canopy setup. Perfect for romantic high tea, anniversaries, or private celebrations with scenic sunset views.",
-    basePrice: 12500,
-    pricingModel: "CUSTOM",
-    isActive: true,
-    images: ["/sunset-canopy.png", "/boat-safari.png", "/family-package.png"],
-    meta: {
-      duration: "3 Hours",
-      capacity: "2 - 6 Guests",
-      isPopular: true,
-      assets: ["JBL PartyBox Speaker", "BBQ Machine & Charcoal Setup"],
-      activities: ["Lake Fishing Hooks & Bait"]
-    }
+    price: 12500,
+    priceType: "Group",
+    duration: "3 Hours",
+    capacity: "2 - 6 Guests",
+    image: "/sunset-canopy.png",
+    badge: "LUXURY SETUP",
+    features: ["Bespoke Floral Setup", "Sunset Over Bolgoda", "Complimentary High Tea"],
+    isPopular: false,
+    featured: true
   }
 ];
 
-function AutoSlidingImageSlider({ images, title }: { images: string[]; title: string }) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-
-  useEffect(() => {
-    if (images.length <= 1) return;
-    const interval = setInterval(() => {
-      setCurrentIndex((prevIndex) => (prevIndex + 1) % images.length);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [images]);
-
-  if (images.length === 0) {
-    return (
-      <div className="w-full h-48 relative overflow-hidden rounded-t-2xl bg-slate-100 flex flex-col items-center justify-center text-slate-400 gap-1.5 border-b border-slate-200">
-        <FiImage size={24} className="text-slate-350" />
-        <span className="text-[10px] font-medium tracking-wider uppercase text-slate-400">No images</span>
-      </div>
-    );
+// Staggered grid item animation variants
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.12
+    }
   }
+};
 
+const cardVariants: Variants = {
+  hidden: { opacity: 0, y: 30 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: "spring",
+      stiffness: 90,
+      damping: 18
+    }
+  }
+};
+
+// Loading Skeleton Component to prevent layout shifts
+export function PackagesSectionSkeleton() {
   return (
-    <div className="w-full h-48 relative overflow-hidden rounded-t-2xl bg-slate-100 border-b border-slate-200">
-      <img
-        src={images[currentIndex]}
-        alt={`${title} - slide ${currentIndex + 1}`}
-        className="w-full h-full object-cover"
-      />
-      {images.length > 1 && (
-        <div className="absolute bottom-3 right-3 flex gap-1 z-10 bg-black/40 px-2 py-0.5 rounded-full">
-          {images.map((_, idx) => (
-            <div
-              key={idx}
-              className={`w-1.5 h-1.5 rounded-full transition-all ${
-                idx === currentIndex ? "bg-white w-3.5" : "bg-white/50"
-              }`}
-            />
-          ))}
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full max-w-7xl px-4">
+      {[1, 2, 3].map((n) => (
+        <div
+          key={n}
+          className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm flex flex-col h-full animate-pulse"
+        >
+          <div className="w-full aspect-[16/10] bg-slate-200" />
+          <div className="p-6 flex-1 flex flex-col justify-between space-y-5">
+            <div className="space-y-3">
+              <div className="h-6 bg-slate-250/75 rounded-md w-2/3" />
+              <div className="space-y-2">
+                <div className="h-3.5 bg-slate-200 rounded w-full" />
+                <div className="h-3.5 bg-slate-200 rounded w-4/5" />
+              </div>
+            </div>
+            <div className="space-y-4 pt-4 border-t border-slate-100">
+              <div className="flex gap-4">
+                <div className="h-4 bg-slate-200 rounded-md w-16" />
+                <div className="h-4 bg-slate-200 rounded-md w-20" />
+              </div>
+              <div className="h-6 bg-slate-250/70 rounded-md w-1/3" />
+              <div className="h-11 bg-slate-250 rounded-xl w-full" />
+            </div>
+          </div>
         </div>
-      )}
+      ))}
     </div>
   );
 }
 
-function PopularPackageCard({
-  pkg,
-  meta
-}: {
-  pkg: Package;
-  meta: LocalPackageMeta;
-}) {
-  const handleScrollToBooking = () => {
-    document.querySelector("#booking")?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  const images = pkg.images && pkg.images.length > 0 ? pkg.images : meta.images && meta.images.length > 0 ? meta.images : [];
-
-  return (
-    <article className="w-full flex flex-col bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 group">
-      {/* Top Slider Image Block */}
-      <AutoSlidingImageSlider images={images} title={pkg.name} />
-
-      {/* Content Section */}
-      <div className="flex flex-col flex-1 p-6 justify-between gap-4">
-        <div>
-          {/* Header row with tags */}
-          <div className="flex items-center justify-between mb-3">
-            <span className="px-2.5 py-0.5 text-[9px] font-bold tracking-wider text-emerald-800 bg-emerald-50 border border-emerald-200/50 rounded-full uppercase">
-              {pkg.pricingModel.replace("_", " ")}
-            </span>
-            <span className="px-2.5 py-0.5 text-[9px] font-bold tracking-wider text-amber-800 bg-amber-50 border border-amber-200/50 rounded-full uppercase flex items-center gap-1">
-              <HiSparkles /> Popular
-            </span>
-          </div>
-
-          {/* Package Title */}
-          <h3 className="font-display text-lg font-extrabold text-slate-900 leading-snug mb-2 group-hover:text-emerald-700 transition-colors">
-            {pkg.name}
-          </h3>
-          
-          {/* Brief Description */}
-          <p className="text-slate-600 text-xs leading-relaxed mb-4 line-clamp-3">
-            {pkg.description || "No description provided."}
-          </p>
-
-          {/* Duration & Capacity */}
-          <div className="flex items-center gap-4 text-slate-500 text-[11px] font-medium border-t border-slate-100 pt-3.5 mb-4">
-            <div className="flex items-center gap-1.5">
-              <FiClock className="text-emerald-600" />
-              <span>{meta.duration || "N/A"}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <FiUsers className="text-emerald-600" />
-              <span>{meta.capacity || "N/A"}</span>
-            </div>
-          </div>
-
-          {/* Attached Assets & Activities Tags */}
-          {((meta.assets && meta.assets.length > 0) || (meta.activities && meta.activities.length > 0)) && (
-            <div className="flex flex-wrap gap-1.5 mt-3 border-t border-slate-100 pt-3">
-              {meta.assets?.map((asset, i) => (
-                <span key={`asset-${i}`} className="px-2 py-0.5 bg-slate-50 border border-slate-200 rounded text-[9px] font-medium text-slate-600">
-                  + Includes {asset}
-                </span>
-              ))}
-              {meta.activities?.map((activity, i) => (
-                <span key={`act-${i}`} className="px-2 py-0.5 bg-slate-50 border border-slate-200 rounded text-[9px] font-medium text-slate-600">
-                  + {activity}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Pricing and Action Footer */}
-        <div>
-          <div className="flex items-baseline gap-1 mb-4">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Rate</span>
-            <span className="text-lg font-black text-emerald-700">LKR {pkg.basePrice.toLocaleString()}</span>
-          </div>
-
-          {/* Action Footer split buttons */}
-          <div className="grid grid-cols-2 gap-3 mt-2">
-            <button
-              onClick={handleScrollToBooking}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold py-2.5 rounded-xl text-center cursor-pointer transition-colors"
-            >
-              View Details
-            </button>
-            <button
-              onClick={handleScrollToBooking}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2.5 rounded-xl text-center cursor-pointer transition-colors"
-            >
-              Book Now
-            </button>
-          </div>
-        </div>
-      </div>
-    </article>
-  );
-}
-
 export default function PackagesSection() {
-  const [popularPackages, setPopularPackages] = useState<any[]>([]);
+  const [packages, setPackages] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
-    async function loadData() {
+    async function loadPackages() {
       try {
+        setError(false);
         const res = await fetch("/api/packages");
         const data = await res.json();
-        
-        if (data.success && data.packages) {
-          // Read metadata
-          let metaMap: Record<string, any> = {};
-          try {
-            const stored = localStorage.getItem("mandil_package_metadata");
-            if (stored) {
-              metaMap = JSON.parse(stored);
-            }
-          } catch (e) {
-            console.error(e);
-          }
 
-          // Merge package fields with metadata
-          const items = data.packages.map((p: any) => {
-            const m = metaMap[p.id] || { duration: "N/A", capacity: "N/A", isPopular: false, images: [], assets: [], activities: [] };
+        if (data.success && Array.isArray(data.packages)) {
+          // Map API models into strict Unified Package shape
+          const mapped: Package[] = data.packages.map((pkg: any, idx: number) => {
+            // Check metadata from local storage
+            let meta = { duration: "", capacity: "", isPopular: false, featured: false, images: [], assets: [], activities: [] };
+            try {
+              const stored = localStorage.getItem("mandil_package_metadata");
+              if (stored) {
+                const metaMap = JSON.parse(stored);
+                if (metaMap[pkg.id]) {
+                  meta = metaMap[pkg.id];
+                }
+              }
+            } catch (e) {
+              console.warn("Could not retrieve package metadata:", e);
+            }
+
+            const price = pkg.price !== undefined ? Number(pkg.price) : Number(pkg.basePrice || 0);
+            const priceType = pkg.priceType || (pkg.pricingModel === "PER_PERSON" ? "Person" : "Group");
+            const duration = pkg.duration || meta.duration || (idx === 0 ? "2 Hours" : idx === 1 ? "8 Hours" : "3 Hours");
+            const capacity = pkg.capacity || meta.capacity || (idx === 0 ? "Up to 12 Guests" : idx === 1 ? "Min 5 - Max 20" : "2 - 6 Guests");
+            
+            let image = "/boat-safari.png";
+            if (pkg.image) {
+              image = pkg.image;
+            } else if (pkg.images && pkg.images.length > 0) {
+              image = pkg.images[0];
+            } else if (meta.images && meta.images.length > 0) {
+              image = meta.images[0];
+            } else if (idx === 1) {
+              image = "/family-package.png";
+            } else if (idx === 2) {
+              image = "/sunset-canopy.png";
+            }
+
+            // A package is popular if flagged so in DB or local metadata
+            const isPopular = pkg.isPopular !== undefined ? !!pkg.isPopular : (meta.isPopular !== undefined ? !!meta.isPopular : true);
+            const featured = pkg.featured !== undefined ? !!pkg.featured : (meta.featured !== undefined ? !!meta.featured : false);
+
+            const badge = pkg.badge || (isPopular ? "POPULAR Choice" : "") || (idx === 0 ? "PREMIUM SAFARI" : idx === 1 ? "ALL-INCLUSIVE" : "LAKESIDE SPECIAL");
+            const features = Array.isArray(pkg.features) 
+              ? pkg.features 
+              : [...(meta.assets || []), ...(meta.activities || [])];
+
+            if (features.length === 0) {
+              features.push("Scenic Lake Excursion", "Farmhouse Access");
+            }
+
             return {
-              ...p,
-              meta: m
+              id: pkg.id,
+              name: pkg.name,
+              description: pkg.description || "Enjoy a premium curated escape tailored for relaxation and adventure.",
+              price,
+              priceType,
+              duration,
+              capacity,
+              image,
+              badge,
+              features,
+              isPopular,
+              featured
             };
           });
 
-          // Filter popular packages
-          const popular = items.filter((item: any) => item.meta.isPopular);
-          setPopularPackages(popular);
+          // Filter on client side: ONLY show packages where isPopular or featured is true
+          const filtered = mapped.filter((p) => p.isPopular || p.featured);
+          
+          if (filtered.length === 0) {
+            // Default fallback if no database elements are flagged
+            setPackages(FALLBACK_POPULAR_PACKAGES);
+          } else {
+            // limit to max of 3-4 cards horizontally
+            setPackages(filtered.slice(0, 4));
+          }
+        } else {
+          setError(true);
+          setPackages(FALLBACK_POPULAR_PACKAGES);
         }
       } catch (err) {
-        console.error("Failed to load live packages:", err);
+        console.error("API fetching error:", err);
+        setError(true);
+        setPackages(FALLBACK_POPULAR_PACKAGES);
       } finally {
         setLoading(false);
       }
     }
-    loadData();
+
+    loadPackages();
   }, []);
 
-  const displayPackages = !loading && popularPackages.length > 0 ? popularPackages : FALLBACK_POPULAR_PACKAGES;
+  const handleBookClick = (pkgId: string) => {
+    const bookingSection = document.querySelector("#booking");
+    if (bookingSection) {
+      bookingSection.scrollIntoView({ behavior: "smooth" });
+    }
+
+    setTimeout(() => {
+      const selectEl = document.getElementById("packageSelect") as HTMLSelectElement | null;
+      if (selectEl) {
+        selectEl.value = pkgId;
+        const changeEvent = new Event("change", { bubbles: true });
+        selectEl.dispatchEvent(changeEvent);
+      }
+    }, 450);
+  };
 
   return (
     <section
       id="packages"
-      className="w-full bg-slate-50 border-b border-slate-200 py-16 md:py-24"
+      className="w-full bg-slate-50 border-b border-slate-200 py-20 md:py-28"
     >
-      <div className="w-full max-w-6xl mx-auto px-4 md:px-6 flex flex-col items-center">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 flex flex-col items-center">
         
         {/* Section Header */}
-        <div className="w-full max-w-3xl mx-auto flex flex-col items-center text-center justify-center mb-12 md:mb-16">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200/50 text-emerald-800 text-xs font-semibold tracking-wider uppercase mb-4">
-            <HiSparkles className="text-sm" />
-            Lakeside Popular Specials
-          </div>
-          <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-slate-900 mb-4 tracking-tight">
-            Our Most Popular <span className="text-emerald-700">Lakeside Packages</span>
+        <div className="w-full max-w-3xl mx-auto flex flex-col items-center text-center justify-center mb-16 md:mb-20">
+          <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-emerald-50 border border-emerald-250/50 text-[#007351] text-[11px] font-bold tracking-widest uppercase mb-4 shadow-2xs">
+            <LuSparkles className="text-sm text-emerald-600" />
+            CURATED LAKESIDE ESCAPES
+          </span>
+          <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight mb-5">
+            Choose Your <span className="text-[#00966B] italic font-serif">Perfect Getaway</span>
           </h2>
-          <p className="text-slate-500 text-sm sm:text-base max-w-xl leading-relaxed text-center">
-            Discover our curated, guest-favorite nature experiences featuring premium amenities and custom boating excursions on Bolgoda Lake.
+          <p className="text-slate-600 text-sm sm:text-base max-w-xl leading-relaxed">
+            Immerse yourself in the tranquility of Bolgoda Lake. Handcrafted nature experiences with luxury details, premium pontoon rides, and private pools.
           </p>
+          {error && (
+            <p className="text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-1 text-xs mt-4">
+              Database offline. Displaying local curated specials.
+            </p>
+          )}
         </div>
 
-        {/* Dynamic Centered Popular Package Grid */}
-        <div className="grid w-full grid-cols-1 md:grid-cols-3 gap-8 justify-items-stretch">
-          {displayPackages.map((pkg) => (
-            <PopularPackageCard key={pkg.id} pkg={pkg} meta={pkg.meta} />
-          ))}
-        </div>
+        {/* Dynamic States */}
+        {loading ? (
+          <PackagesSectionSkeleton />
+        ) : (
+          /* Staggered mount animations */
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="show"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full max-w-7xl px-2 items-stretch"
+          >
+            {packages.map((pkg) => (
+              <motion.article
+                key={pkg.id}
+                variants={cardVariants}
+                whileHover={{ y: -8, scale: 1.015 }}
+                transition={{ duration: 0.28, ease: "easeOut" }}
+                className="w-full flex flex-col bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow duration-300 group text-left h-full"
+              >
+                {/* Image Wrapper */}
+                <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100 flex-shrink-0">
+                  <Image
+                    src={pkg.image}
+                    alt={pkg.name}
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    className="object-cover group-hover:scale-103 transition-transform duration-700 ease-out"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent pointer-events-none" />
+                  
+                  {/* Absolute Badge top-left */}
+                  {pkg.badge && (
+                    <div className="absolute top-4 left-4 z-10">
+                      <span className="inline-block backdrop-blur-md bg-white/75 border border-white/40 text-[#007351] text-[10px] font-extrabold uppercase tracking-widest px-3 py-1.5 rounded-full shadow-2xs">
+                        {pkg.badge}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Content Details */}
+                <div className="flex flex-col flex-1 p-6 justify-between gap-5">
+                  <div className="space-y-3.5">
+                    {/* Title */}
+                    <h3 className="text-xl font-bold text-gray-900 group-hover:text-[#00966B] transition-colors duration-200 leading-snug">
+                      {pkg.name}
+                    </h3>
+                    
+                    {/* Description */}
+                    <p className="text-sm text-gray-600 leading-relaxed line-clamp-3">
+                      {pkg.description}
+                    </p>
+
+                    {/* Features checklist */}
+                    {pkg.features && pkg.features.length > 0 && (
+                      <ul className="space-y-1.5 pt-2">
+                        {pkg.features.slice(0, 3).map((feat, idx) => (
+                          <li key={idx} className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+                            <span className="flex-shrink-0 w-4 h-4 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center">
+                              <LuCheck className="text-[#00966B] text-[10px] stroke-[3]" />
+                            </span>
+                            <span className="truncate">{feat}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  <div>
+                    {/* Meta stats duration and capacity */}
+                    <div className="flex items-center gap-4 text-slate-500 text-xs font-semibold mb-5 border-t border-slate-100 pt-4">
+                      <div className="flex items-center gap-1.5">
+                        <LuClock className="text-slate-400 text-sm" />
+                        <span>{pkg.duration}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <LuUsers className="text-slate-400 text-sm" />
+                        <span>{pkg.capacity}</span>
+                      </div>
+                    </div>
+
+                    {/* Pricing text */}
+                    <div className="flex items-baseline gap-1 mb-4">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">From</span>
+                      <span className="text-xl font-black text-[#00966B] ml-1">
+                        Rs. {pkg.price.toLocaleString("en-US")}
+                      </span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1">
+                        / {pkg.priceType}
+                      </span>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="space-y-2 mt-4">
+                      <Link
+                        href={`/packages/${pkg.id}`}
+                        className="w-full border border-[#00966B] text-[#00966B] hover:bg-[#00966B]/5 font-bold text-xs py-3 px-4 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer text-center block"
+                      >
+                        View Package
+                      </Link>
+                      <button
+                        onClick={() => handleBookClick(pkg.id)}
+                        className="w-full bg-[#00966B] hover:bg-[#007c58] active:bg-[#006447] text-white font-bold text-xs py-3 px-4 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-sm hover:shadow-md active:scale-[0.985]"
+                      >
+                        Book This Package
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </motion.article>
+            ))}
+          </motion.div>
+        )}
       </div>
     </section>
   );

@@ -112,7 +112,7 @@ export default function DashboardClient({
   const [amenities, setAmenities] = useState<Amenity[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [bookings, setBookings] = useState<Booking[]>(initialBookings);
-  
+
   // Loader & Metadata states
   const [isLoading, setIsLoading] = useState(true);
   const [packageMeta, setPackageMeta] = useState<Record<string, { duration: string; capacity: string; isPopular: boolean; images: string[]; assets?: string[]; activities?: string[] }>>({});
@@ -128,7 +128,7 @@ export default function DashboardClient({
   const [updateSuccess, setUpdateSuccess] = useState(false);
 
   // ─── Creation Form States ──────────────────────────────────────────────────
-  
+
   // 1. Packages (Component A)
   const [pkgTitle, setPkgTitle] = useState("");
   const [pkgDescription, setPkgDescription] = useState("");
@@ -166,7 +166,7 @@ export default function DashboardClient({
         setIsLoading(true);
         const response = await fetch("/api/admin/inventory");
         const data = await response.json();
-        
+
         if (data.success) {
           setPackages(data.packages);
           setAmenities(data.amenities);
@@ -284,7 +284,7 @@ export default function DashboardClient({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     if (e.dataTransfer.files) {
-      const droppedFiles = Array.from(e.dataTransfer.files).filter(file => 
+      const droppedFiles = Array.from(e.dataTransfer.files).filter(file =>
         /\.(jpg|jpeg|png|webp|avif)$/i.test(file.name)
       );
       setPkgImages(prev => [...prev, ...droppedFiles]);
@@ -322,7 +322,7 @@ export default function DashboardClient({
       formData.append("isActive", "true");
       formData.append("assetIds", JSON.stringify(selectedAssets));
       formData.append("activityIds", JSON.stringify(selectedActivities));
-      
+
       pkgImages.forEach((file) => {
         formData.append("images", file);
       });
@@ -388,7 +388,7 @@ export default function DashboardClient({
     // Map saved asset names and activity names back to their corresponding database IDs to pre-fill the form checkboxes
     const matchedAssetIds = (meta.assets || []).map(name => amenities.find(a => a.name === name)?.id).filter(Boolean) as string[];
     const matchedActivityIds = (meta.activities || []).map(name => activities.find(a => a.name === name)?.id).filter(Boolean) as string[];
-    
+
     setSelectedAssets(matchedAssetIds);
     setSelectedActivities(matchedActivityIds);
 
@@ -559,10 +559,10 @@ export default function DashboardClient({
 
   return (
     <div className="flex flex-1 w-full min-h-screen bg-slate-50">
-      
+
       {/* ─── Sidebar Navigation (Fixed Desktop View) ────────────────────────── */}
       <aside className="w-64 min-h-screen bg-white border-r border-slate-200 flex flex-col p-6 sticky top-16">
-        
+
         {/* Navigation list */}
         <nav className="flex-1 space-y-2.5">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-450 block px-4 mb-4">
@@ -571,11 +571,10 @@ export default function DashboardClient({
 
           <button
             onClick={() => setActiveTab("dashboard")}
-            className={`w-full flex items-center gap-3 px-4 py-3 text-xs font-semibold rounded-xl border transition-all duration-200 cursor-pointer ${
-              activeTab === "dashboard"
+            className={`w-full flex items-center gap-3 px-4 py-3 text-xs font-semibold rounded-xl border transition-all duration-200 cursor-pointer ${activeTab === "dashboard"
                 ? "bg-emerald-50 text-emerald-800 border-emerald-100/70"
                 : "bg-transparent text-slate-650 hover:bg-slate-50 hover:text-slate-900 border-transparent"
-            }`}
+              }`}
           >
             <FiPieChart size={15} />
             Dashboard Overview
@@ -583,11 +582,10 @@ export default function DashboardClient({
 
           <button
             onClick={() => setActiveTab("bookings")}
-            className={`w-full flex items-center gap-3 px-4 py-3 text-xs font-semibold rounded-xl border transition-all duration-200 cursor-pointer ${
-              activeTab === "bookings"
+            className={`w-full flex items-center gap-3 px-4 py-3 text-xs font-semibold rounded-xl border transition-all duration-200 cursor-pointer ${activeTab === "bookings"
                 ? "bg-emerald-50 text-emerald-800 border-emerald-100/70"
                 : "bg-transparent text-slate-650 hover:bg-slate-50 hover:text-slate-900 border-transparent"
-            }`}
+              }`}
           >
             <FiCalendar size={15} />
             Reservations Console
@@ -595,11 +593,10 @@ export default function DashboardClient({
 
           <button
             onClick={() => setActiveTab("packages")}
-            className={`w-full flex items-center gap-3 px-4 py-3 text-xs font-semibold rounded-xl border transition-all duration-200 cursor-pointer ${
-              activeTab === "packages"
+            className={`w-full flex items-center gap-3 px-4 py-3 text-xs font-semibold rounded-xl border transition-all duration-200 cursor-pointer ${activeTab === "packages"
                 ? "bg-emerald-50 text-emerald-800 border-emerald-100/70"
                 : "bg-transparent text-slate-650 hover:bg-slate-50 hover:text-slate-900 border-transparent"
-            }`}
+              }`}
           >
             <FiLayers size={15} />
             Lakeside Packages
@@ -607,11 +604,10 @@ export default function DashboardClient({
 
           <button
             onClick={() => setActiveTab("assets")}
-            className={`w-full flex items-center justify-between px-4 py-3 text-xs font-semibold rounded-xl border transition-all duration-200 cursor-pointer ${
-              activeTab === "assets"
+            className={`w-full flex items-center justify-between px-4 py-3 text-xs font-semibold rounded-xl border transition-all duration-200 cursor-pointer ${activeTab === "assets"
                 ? "bg-emerald-50 text-emerald-800 border-emerald-100/70"
                 : "bg-transparent text-slate-650 hover:bg-slate-50 hover:text-slate-900 border-transparent"
-            }`}
+              }`}
           >
             <span className="flex items-center gap-3">
               <FiTag size={15} />
@@ -624,11 +620,10 @@ export default function DashboardClient({
 
           <button
             onClick={() => setActiveTab("activities")}
-            className={`w-full flex items-center justify-between px-4 py-3 text-xs font-semibold rounded-xl border transition-all duration-200 cursor-pointer ${
-              activeTab === "activities"
+            className={`w-full flex items-center justify-between px-4 py-3 text-xs font-semibold rounded-xl border transition-all duration-200 cursor-pointer ${activeTab === "activities"
                 ? "bg-emerald-50 text-emerald-800 border-emerald-100/70"
                 : "bg-transparent text-slate-650 hover:bg-slate-50 hover:text-slate-900 border-transparent"
-            }`}
+              }`}
           >
             <span className="flex items-center gap-3">
               <FiCompass size={15} />
@@ -643,7 +638,7 @@ export default function DashboardClient({
 
       {/* ─── Main Content Workspace ─────────────────────────────────────────── */}
       <main className="flex-1 bg-slate-50 p-8 w-full min-h-screen flex flex-col items-start space-y-6 overflow-y-auto">
-        
+
         {/* ─── TAB: DASHBOARD OVERVIEW ──────────────────────────────────────── */}
         {activeTab === "dashboard" && (
           <div className="w-full space-y-6">
@@ -808,7 +803,7 @@ export default function DashboardClient({
                 ) : (
                   <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-2xs space-y-6 relative overflow-hidden">
                     <div className="absolute top-0 left-0 right-0 h-1 bg-emerald-600" />
-                    
+
                     <div className="flex justify-between items-center pb-4 border-b border-slate-100">
                       <div>
                         <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-widest block">Itinerary Detail</span>
@@ -866,7 +861,7 @@ export default function DashboardClient({
 
                     <form onSubmit={handleUpdateBookingStatus} className="space-y-4 pt-4 border-t border-slate-100">
                       <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5"><FiEdit size={12} /> Modify Status</h4>
-                      
+
                       {updateError && <div className="p-3 bg-red-50 border border-red-100 text-red-800 text-[10px] rounded-xl font-medium">{updateError}</div>}
                       {updateSuccess && <div className="p-3 bg-emerald-50 border border-emerald-100 text-emerald-800 text-[10px] rounded-xl font-medium">Itinerary status updated!</div>}
 
@@ -1113,7 +1108,7 @@ export default function DashboardClient({
                   <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
                     <FiLayers className="text-emerald-700" /> Active Packages ({packages.length})
                   </h3>
-                  
+
                   {/* Inline Search Bar */}
                   <div className="relative w-full sm:w-64">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
@@ -1152,7 +1147,7 @@ export default function DashboardClient({
                               <FiStar size={13} className="fill-amber-500 text-amber-500" />
                             </div>
                           )}
-                          
+
                           {/* Image Preview Box */}
                           {firstImage ? (
                             <img
@@ -1177,7 +1172,7 @@ export default function DashboardClient({
                               <h4 className="text-slate-900 font-bold text-xs mt-2.5 leading-tight truncate" title={pkg.name}>{pkg.name}</h4>
                               <p className="text-slate-500 text-[11px] mt-1.5 leading-relaxed line-clamp-2">{pkg.description || "No description provided."}</p>
                             </div>
-                            
+
                             {/* Edit & Delete Action Footer */}
                             <div className="border-t border-slate-100 pt-3 mt-auto">
                               <div className="flex items-center justify-between text-[10px] text-slate-500 mb-2">
@@ -1224,7 +1219,7 @@ export default function DashboardClient({
 
             {/* FULL-WIDTH GRID WITH CREATION FORM ON LEFT & INVENTORY ON RIGHT */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full items-start">
-              
+
               {/* Form Panel (Left) */}
               <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-2xs space-y-4">
                 <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
@@ -1348,7 +1343,7 @@ export default function DashboardClient({
 
             {/* FULL-WIDTH GRID WITH CREATION FORM ON LEFT & ACTIVITIES ON RIGHT */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full items-start">
-              
+
               {/* Form Panel (Left) */}
               <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-2xs space-y-4">
                 <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">

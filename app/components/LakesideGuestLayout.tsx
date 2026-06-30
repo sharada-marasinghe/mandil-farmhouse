@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Navbar from "./Navbar";
 import Link from "next/link";
 import Image from "next/image";
 import { 
@@ -31,6 +32,7 @@ import {
 } from "react-icons/fi";
 import { HiSparkles, HiOutlineSparkles } from "react-icons/hi";
 import { createClient } from "@/utils/supabase/client";
+import PackagesSection from "./PackagesSection";
 
 // ─── Types and Interfaces ───────────────────────────────────────────────────
 interface Package {
@@ -432,155 +434,7 @@ export default function LakesideGuestLayout() {
     <div className="w-full min-h-screen bg-white text-slate-900 flex flex-col items-center overflow-x-hidden">
       
       {/* ─── 1. Navbar ──────────────────────────────────────────────────────── */}
-      <div className="w-full sticky top-0 z-50 flex flex-col">
-        <nav className={`w-full bg-white border-b border-slate-100 h-16 flex items-center transition-shadow ${
-          scrolled ? "shadow-sm" : ""
-        }`}>
-          <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-full">
-            {/* Logo */}
-            <Link
-              href="/"
-              onClick={(e) => {
-                e.preventDefault();
-                window.scrollTo({ top: 0, behavior: "smooth" });
-              }}
-              className="flex items-center gap-2 group cursor-pointer flex-shrink-0"
-            >
-              <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white font-bold shadow-sm transition-transform duration-200 group-hover:scale-105">
-                M
-              </div>
-              <div>
-                <span className="font-semibold text-slate-900 text-base leading-none block">
-                  Mandil
-                </span>
-                <span className="block text-[9px] font-bold tracking-widest text-emerald-600 uppercase leading-none mt-0.5">
-                  Farmhouse
-                </span>
-              </div>
-            </Link>
-
-            {/* Desktop Navigation Links */}
-            <div className="hidden md:flex items-center gap-6">
-              <button
-                onClick={() => handleNavClick("#packages")}
-                className="text-sm font-medium text-slate-500 hover:text-emerald-600 transition-colors cursor-pointer"
-              >
-                Packages
-              </button>
-              <button
-                onClick={() => handleNavClick("#gallery")}
-                className="text-sm font-medium text-slate-500 hover:text-emerald-600 transition-colors cursor-pointer"
-              >
-                Gallery
-              </button>
-              <button
-                onClick={() => handleNavClick("#testimonials")}
-                className="text-sm font-medium text-slate-500 hover:text-emerald-600 transition-colors cursor-pointer"
-              >
-                Reviews
-              </button>
-              <Link
-                href="/track-booking"
-                className="text-sm font-medium text-slate-500 hover:text-emerald-600 transition-colors"
-              >
-                Track Booking
-              </Link>
-              <button
-                onClick={() => handleNavClick("#contact")}
-                className="text-sm font-medium text-slate-500 hover:text-emerald-600 transition-colors cursor-pointer"
-              >
-                Contact
-              </button>
-            </div>
-
-            {/* Desktop CTA Button */}
-            <div className="hidden md:flex items-center gap-4">
-              <button
-                onClick={() => handleNavClick("#booking")}
-                className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium transition-colors shadow-sm cursor-pointer"
-              >
-                Book Now
-              </button>
-            </div>
-
-            {/* Mobile hamburger */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-lg text-slate-500 hover:text-emerald-600 hover:bg-slate-50 transition-colors"
-              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
-            >
-              {mobileMenuOpen ? <FiX size={20} /> : <FiMenu size={20} />}
-            </button>
-          </div>
-        </nav>
-
-        {/* Mobile Drawer Overlay */}
-        {mobileMenuOpen && (
-          <div 
-            className="fixed inset-0 top-16 bg-slate-900/20 backdrop-blur-xs z-40 md:hidden"
-            onClick={() => setMobileMenuOpen(false)}
-          />
-        )}
-
-        {/* Mobile Menu Drawer */}
-        <div className={`fixed top-16 right-0 bottom-0 w-64 bg-white border-l border-slate-100 shadow-xl z-40 md:hidden transition-transform duration-300 ${
-          mobileMenuOpen ? "translate-x-0" : "translate-x-full"
-        }`}>
-          <div className="flex flex-col gap-1 p-6">
-            <button
-              onClick={() => handleNavClick("#packages")}
-              className="text-left px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:text-emerald-600 hover:bg-slate-50 transition-colors cursor-pointer"
-            >
-              Packages
-            </button>
-            <button
-              onClick={() => handleNavClick("#gallery")}
-              className="text-left px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:text-emerald-600 hover:bg-slate-50 transition-colors cursor-pointer"
-            >
-              Gallery
-            </button>
-            <button
-              onClick={() => handleNavClick("#testimonials")}
-              className="text-left px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:text-emerald-600 hover:bg-slate-50 transition-colors cursor-pointer"
-            >
-              Reviews
-            </button>
-            <Link
-              href="/track-booking"
-              onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:text-emerald-600 hover:bg-slate-50 block transition-colors"
-            >
-              Track Booking
-            </Link>
-            <button
-              onClick={() => handleNavClick("#contact")}
-              className="text-left px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:text-emerald-600 hover:bg-slate-50 transition-colors cursor-pointer"
-            >
-              Contact
-            </button>
-            <div className="mt-4 pt-4 border-t border-slate-100">
-              <button
-                onClick={() => handleNavClick("#booking")}
-                className="w-full py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold text-center block transition-colors shadow-sm cursor-pointer"
-              >
-                Book Now
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Warning/Alert Banner */}
-        {hasGalleryImages === false && (
-          <div className="w-full bg-amber-50 text-amber-800 py-3 px-4 text-center text-sm border-b border-amber-200 flex justify-center items-center">
-            <div className="flex items-center justify-center gap-2">
-              <FiAlertTriangle className="text-amber-600 flex-shrink-0" size={16} />
-              <span>
-                No gallery images yet. Upload photos to the <code className="bg-amber-100/60 px-1.5 py-0.5 rounded font-mono text-xs text-amber-900">images-b</code> bucket in Supabase.
-              </span>
-            </div>
-          </div>
-        )}
-      </div>
+      <Navbar />
 
       {/* ─── 2. Hero Section ────────────────────────────────────────────────── */}
       <section className="w-full py-16 md:py-24 flex flex-col items-center justify-center bg-white relative overflow-hidden min-h-[600px] md:min-h-[70vh]">
@@ -640,92 +494,7 @@ export default function LakesideGuestLayout() {
       </section>
 
       {/* ─── 3. Packages Section ────────────────────────────────────────────── */}
-      <section id="packages" className="w-full py-16 md:py-24 flex flex-col items-center justify-center bg-slate-50 border-b border-slate-200">
-        <div className="w-full max-w-6xl mx-auto px-4 md:px-6 flex flex-col items-center text-center">
-          
-          {/* Section Header */}
-          <div className="w-full max-w-3xl mx-auto flex flex-col items-center text-center justify-center mb-12">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200/50 text-emerald-800 text-xs font-semibold tracking-wider uppercase mb-4">
-              <HiSparkles className="text-sm text-emerald-600" />
-              Curated Lakeside Escapes
-            </div>
-            <h2 className="font-display text-4xl sm:text-5xl font-bold text-slate-900 mb-4 tracking-tight">
-              Choose Your <span className="text-emerald-700">Perfect Getaway</span>
-            </h2>
-            <p className="text-slate-600 text-base sm:text-lg max-w-xl">
-              Immerse yourself in the tranquility of Bolgoda Lake. Handcrafted nature experiences with luxury details.
-            </p>
-          </div>
-
-          {/* Packages Grid */}
-          <div className="grid w-full grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 justify-items-stretch">
-            {MARKETING_PACKAGES.map((pkg) => (
-              <article 
-                key={pkg.id} 
-                className="w-full flex flex-col h-full bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-shadow overflow-hidden group text-left"
-              >
-                {/* Image Container */}
-                <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100">
-                  <Image
-                    src={pkg.image}
-                    alt={pkg.imageAlt}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-                  <div className="absolute top-4 left-4">
-                    <span className="px-3 py-1 text-[11px] font-semibold tracking-wider text-emerald-800 bg-emerald-50 border border-emerald-200/50 rounded-full uppercase">
-                      {pkg.tag}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Content Container */}
-                <div className="flex flex-col flex-1 p-6 justify-between">
-                  <div>
-                    <h3 className="font-display text-xl font-bold text-slate-900 leading-tight mb-2">
-                      {pkg.title}
-                    </h3>
-                    <p className="text-slate-600 text-sm leading-relaxed mb-5">
-                      {pkg.description}
-                    </p>
-                  </div>
-
-                  <div>
-                    {/* Duration & Capacity */}
-                    <div className="flex items-center gap-4 text-slate-500 text-xs font-medium mb-5 border-t border-slate-100 pt-4">
-                      <div className="flex items-center gap-1.5">
-                        <FiClock className="text-emerald-600 text-sm" />
-                        <span>{pkg.duration}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <FiUsers className="text-emerald-600 text-sm" />
-                        <span>{pkg.capacity}</span>
-                      </div>
-                    </div>
-
-                    {/* Pricing Info */}
-                    <div className="flex items-baseline gap-1.5 mb-4">
-                      <span className="text-sm font-semibold text-slate-400">From</span>
-                      <span className="text-xl font-bold text-emerald-700">{pkg.price}</span>
-                    </div>
-
-                    {/* Action Button */}
-                    <button
-                      onClick={() => handleNavClick("#booking")}
-                      className="w-full py-3 px-4 font-semibold text-sm rounded-xl transition-all duration-200 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm hover:shadow-emerald-600/10 flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      Book This Package
-                    </button>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-
-        </div>
-      </section>
+      <PackagesSection />
 
       {/* ─── 4. Gallery Section ─────────────────────────────────────────────── */}
       <section id="gallery" className="w-full py-16 md:py-24 flex flex-col items-center justify-center bg-white border-b border-slate-100">

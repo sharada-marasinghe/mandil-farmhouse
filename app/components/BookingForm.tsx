@@ -103,10 +103,16 @@ export default function BookingForm() {
     fetchPackages();
   }, []);
 
-  // Set default package when packages are loaded
+  // Set default package when packages are loaded, with query param pre-select support
   useEffect(() => {
-    if (packages.length > 0 && !selectedPackageId) {
-      setSelectedPackageId(packages[0].id);
+    if (packages.length > 0) {
+      const searchParams = new URLSearchParams(window.location.search);
+      const urlPackageId = searchParams.get("package");
+      if (urlPackageId && packages.some(p => p.id === urlPackageId)) {
+        setSelectedPackageId(urlPackageId);
+      } else if (!selectedPackageId) {
+        setSelectedPackageId(packages[0].id);
+      }
     }
   }, [packages, selectedPackageId]);
 

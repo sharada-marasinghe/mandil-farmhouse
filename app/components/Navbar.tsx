@@ -2,19 +2,20 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { FiMenu, FiX, FiAlertTriangle } from "react-icons/fi";
 import { createClient } from "@/utils/supabase/client";
 
 const navLinks = [
-  { label: "Packages",      href: "#packages",      external: false },
-  { label: "Safaris",       href: "#safaris",       external: false },
-  { label: "Gallery",       href: "#gallery",       external: false },
-  { label: "About",         href: "#about",         external: false },
-  { label: "Contact",       href: "#contact",       external: false },
-  { label: "Track Booking", href: "/track-booking", external: true  },
+  { label: "Packages",      href: "/packages" },
+  { label: "Gallery",       href: "/gallery" },
+  { label: "Reviews",       href: "/reviews" },
+  { label: "Track Booking", href: "/track-booking" },
+  { label: "Contact",       href: "/contact" },
 ];
 
 export default function Navbar() {
+  const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [hasGalleryImages, setHasGalleryImages] = useState<boolean | null>(null);
@@ -45,6 +46,10 @@ export default function Navbar() {
 
   const handleNavClick = (href: string) => {
     setMobileOpen(false);
+    if (window.location.pathname !== "/") {
+      window.location.href = `/${href}`;
+      return;
+    }
     const el = document.querySelector(href);
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
   };
@@ -60,8 +65,10 @@ export default function Navbar() {
           <Link
             href="/"
             onClick={(e) => {
-              e.preventDefault();
-              window.scrollTo({ top: 0, behavior: "smooth" });
+              if (window.location.pathname === "/") {
+                e.preventDefault();
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }
             }}
             className="flex items-center gap-2 group cursor-pointer flex-shrink-0"
           >
@@ -80,32 +87,30 @@ export default function Navbar() {
 
           {/* Desktop Navigation Links */}
           <div className="hidden md:flex items-center gap-6">
-            {navLinks.map((link) =>
-              link.external ? (
+            {navLinks.map((link) => {
+              const isActive = pathname === link.href;
+              return (
                 <Link
                   key={link.label}
                   href={link.href}
-                  className="text-sm font-medium text-slate-500 hover:text-emerald-600 transition-colors"
+                  className={`text-sm font-medium transition-colors relative py-1 cursor-pointer ${
+                    isActive ? "text-emerald-700 font-semibold" : "text-slate-500 hover:text-emerald-600"
+                  }`}
                 >
                   {link.label}
+                  {isActive && (
+                    <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-emerald-600 rounded-full" />
+                  )}
                 </Link>
-              ) : (
-                <button
-                  key={link.label}
-                  onClick={() => handleNavClick(link.href)}
-                  className="text-sm font-medium text-slate-500 hover:text-emerald-600 transition-colors"
-                >
-                  {link.label}
-                </button>
-              )
-            )}
+              );
+            })}
           </div>
 
           {/* Desktop CTA Button */}
           <div className="hidden md:flex items-center gap-4">
             <button
               onClick={() => handleNavClick("#booking")}
-              className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium transition-colors shadow-sm"
+              className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium transition-colors shadow-sm cursor-pointer"
             >
               Book Now
             </button>
@@ -135,30 +140,27 @@ export default function Navbar() {
         mobileOpen ? "translate-x-0" : "translate-x-full"
       }`}>
         <div className="flex flex-col gap-1 p-6">
-          {navLinks.map((link) =>
-            link.external ? (
+          {navLinks.map((link) => {
+            const isActive = pathname === link.href;
+            return (
               <Link
                 key={link.label}
                 href={link.href}
                 onClick={() => setMobileOpen(false)}
-                className="px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:text-emerald-600 hover:bg-slate-50 block transition-colors"
+                className={`px-3 py-2.5 rounded-lg text-sm font-medium block transition-colors text-left ${
+                  isActive 
+                    ? "bg-emerald-50 text-[#007351] font-bold" 
+                    : "text-slate-650 hover:text-[#007351] hover:bg-slate-50"
+                }`}
               >
                 {link.label}
               </Link>
-            ) : (
-              <button
-                key={link.label}
-                onClick={() => handleNavClick(link.href)}
-                className="text-left px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:text-emerald-600 hover:bg-slate-50 transition-colors"
-              >
-                {link.label}
-              </button>
-            )
-          )}
+            );
+          })}
           <div className="mt-4 pt-4 border-t border-slate-100">
             <button
               onClick={() => handleNavClick("#booking")}
-              className="w-full py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold text-center block transition-colors shadow-sm"
+              className="w-full py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold text-center block transition-colors shadow-sm cursor-pointer"
             >
               Book Now
             </button>
