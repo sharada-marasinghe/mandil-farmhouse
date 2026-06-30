@@ -131,8 +131,10 @@ enum AmenityBilling {
 model Amenity {
   id          String         @id @default(cuid())
   name        String         @unique
+  description String?
   price       Decimal        @db.Decimal(10, 2)
   billingType AmenityBilling @default(FLAT_RATE)
+  images      String[]       @default([])
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
@@ -143,6 +145,7 @@ model Activity {
   id          String   @id @default(cuid())
   name        String   @unique
   description String?
+  images      String[] @default([])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
