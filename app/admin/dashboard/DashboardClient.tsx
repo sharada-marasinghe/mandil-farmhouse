@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   FiSearch,
+  FiSettings,
   FiCalendar,
   FiUser,
   FiPhone,
@@ -106,6 +108,16 @@ export default function DashboardClient({
 }: DashboardClientProps) {
   // ─── Active Sidebar Tab ───────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<"dashboard" | "bookings" | "packages" | "assets" | "activities">("dashboard");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get("tab");
+      if (tab === "bookings" || tab === "packages" || tab === "assets" || tab === "activities" || tab === "dashboard") {
+        setActiveTab(tab);
+      }
+    }
+  }, []);
 
   // ─── Database-fetched state lists ──────────────────────────────────────────
   const [packages, setPackages] = useState<Package[]>(initialPackages);
@@ -633,6 +645,16 @@ export default function DashboardClient({
               {activities.length}
             </span>
           </button>
+
+          <div className="pt-2.5 mt-2.5 border-t border-slate-100">
+            <Link
+              href="/admin/settings"
+              className="w-full flex items-center gap-3 px-4 py-3 text-xs font-semibold rounded-xl border transition-all duration-200 cursor-pointer bg-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900 border-transparent"
+            >
+              <FiSettings size={15} />
+              System Settings
+            </Link>
+          </div>
         </nav>
       </aside>
 
