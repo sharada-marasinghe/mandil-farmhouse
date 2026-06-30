@@ -488,6 +488,38 @@ export default function PackagesClient({
             <span className="text-xs font-semibold text-slate-700">Featured Popular Package</span>
           </div>
 
+          {/* Real-time Package Cost Summary */}
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2">
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">
+              Package Cost Summary
+            </span>
+            <div className="flex items-center justify-between text-[11px] text-slate-600">
+              <span>Base Price</span>
+              <span className="font-mono">LKR {Number(pkgBasePrice || 0).toLocaleString()}</span>
+            </div>
+            {selectedAssets.length > 0 && (
+              <div className="flex items-center justify-between text-[11px] text-slate-600">
+                <span>Attached Assets ({selectedAssets.length})</span>
+                <span className="font-mono">
+                  LKR{" "}
+                  {selectedAssets
+                    .reduce((sum, id) => sum + (amenities.find((a) => a.id === id)?.price || 0), 0)
+                    .toLocaleString()}
+                </span>
+              </div>
+            )}
+            <div className="flex items-center justify-between text-xs font-bold text-slate-900 border-t border-slate-200 pt-2 mt-1">
+              <span>Net Total Cost</span>
+              <span className="text-emerald-700 font-extrabold">
+                LKR{" "}
+                {(
+                  Number(pkgBasePrice || 0) +
+                  selectedAssets.reduce((sum, id) => sum + (amenities.find((a) => a.id === id)?.price || 0), 0)
+                ).toLocaleString()}
+              </span>
+            </div>
+          </div>
+
           <button
             type="submit"
             disabled={pkgCreating}
@@ -538,13 +570,21 @@ export default function PackagesClient({
                 );
               }
               return filtered.map((pkg) => {
-                const meta = packageMeta[pkg.id] || { duration: "N/A", capacity: "N/A", isPopular: false, images: [] };
+                const meta = packageMeta[pkg.id] || { duration: "N/A", capacity: "N/A", isPopular: false, images: [], assets: [], activities: [] };
                 const firstImage =
                   pkg.images && pkg.images.length > 0
                     ? pkg.images[0]
                     : meta.images && meta.images.length > 0
                     ? meta.images[0]
                     : null;
+
+                // Find all attached assets and calculate total cost
+                const attachedAmenities = (meta.assets || [])
+                  .map((name) => amenities.find((a) => a.name === name))
+                  .filter(Boolean) as Amenity[];
+                const attachedAssetsCost = attachedAmenities.reduce((sum, am) => sum + am.price, 0);
+                const netTotal = pkg.basePrice + attachedAssetsCost;
+
                 return (
                   <div
                     key={pkg.id}
@@ -573,9 +613,9 @@ export default function PackagesClient({
 
                     <div className="p-4 flex flex-col flex-1 justify-between gap-3">
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center justify-between gap-2">
                           <span className="px-2 py-0.5 rounded bg-emerald-50 border border-emerald-100 text-emerald-800 text-[8px] font-bold uppercase tracking-wider">
-                            {pkg.pricingModel}
+                            {pkg.pricingModel.replace("_", " ")}
                           </span>
                           <span className="text-[9px] text-slate-400 font-mono">ID: {pkg.id.slice(0, 8)}...</span>
                         </div>
@@ -588,6 +628,27 @@ export default function PackagesClient({
                         <p className="text-slate-500 text-[11px] mt-1.5 leading-relaxed line-clamp-2">
                           {pkg.description || "No description provided."}
                         </p>
+
+                        {/* Attached Assets cost list */}
+                        {attachedAmenities.length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-dashed border-slate-100 space-y-1">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">
+                              Attached Assets & Cost
+                            </span>
+                            <div className="space-y-1">
+                              {attachedAmenities.map((am) => (
+                                <div key={am.id} className="flex items-center justify-between text-[10px] text-slate-650">
+                                  <span className="truncate max-w-[130px] font-medium">{am.name}</span>
+                                  <span className="font-mono text-slate-400">LKR {am.price.toLocaleString()}</span>
+                                </div>
+                              ))}
+                              <div className="flex items-center justify-between text-[10px] font-bold text-slate-700 pt-1 border-t border-slate-50">
+                                <span>Assets Total Cost</span>
+                                <span>LKR {attachedAssetsCost.toLocaleString()}</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       <div className="border-t border-slate-100 pt-3 mt-auto">
@@ -599,25 +660,46 @@ export default function PackagesClient({
                             <FiUsers size={11} className="text-emerald-600" /> {meta.capacity}
                           </span>
                         </div>
-                        <div className="flex items-center justify-between border-t border-slate-100/50 pt-2">
-                          <span className="font-extrabold text-emerald-700 text-xs">
-                            LKR {pkg.basePrice.toLocaleString()}
-                          </span>
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => handleEditPackage(pkg)}
-                              className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold rounded-lg transition-colors cursor-pointer flex items-center gap-1"
-                            >
-                              <FiEdit size={10} /> Edit
-                            </button>
-                            <button
-                              onClick={() => handleDeletePackage(pkg.id)}
-                              className="p-1 text-slate-400 hover:text-red-600 transition-colors cursor-pointer"
-                              title="Delete Package"
-                            >
-                              <FiTrash2 size={12} />
-                            </button>
+                        
+                        {/* Base Price & Net Total pricing label */}
+                        <div className="border-t border-slate-100/50 pt-2.5 space-y-2">
+                          <div className="flex flex-col gap-1 text-[10px]">
+                            <div className="flex items-center justify-between text-slate-500">
+                              <span>Base Price</span>
+                              <span className="font-bold text-slate-700">LKR {pkg.basePrice.toLocaleString()}</span>
+                            </div>
+                            {attachedAssetsCost > 0 && (
+                              <div className="flex items-center justify-between text-slate-500">
+                                <span>Assets cost</span>
+                                <span className="font-bold text-slate-700">LKR {attachedAssetsCost.toLocaleString()}</span>
+                              </div>
+                            )}
                           </div>
+                          
+                          <div className={`flex items-center justify-between px-2.5 py-1.5 rounded-xl border ${
+                            attachedAssetsCost > 0 
+                              ? "bg-emerald-50 border-emerald-100 text-emerald-800" 
+                              : "bg-slate-50 border-slate-100 text-slate-750"
+                          }`}>
+                            <span className="text-[10px] font-bold">Net Total</span>
+                            <span className="font-extrabold text-xs">LKR {netTotal.toLocaleString()}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-end gap-2 mt-3 pt-2 border-t border-slate-100/50">
+                          <button
+                            onClick={() => handleEditPackage(pkg)}
+                            className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold rounded-lg transition-colors cursor-pointer flex items-center gap-1"
+                          >
+                            <FiEdit size={10} /> Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeletePackage(pkg.id)}
+                            className="p-1 text-slate-400 hover:text-red-600 transition-colors cursor-pointer"
+                            title="Delete Package"
+                          >
+                            <FiTrash2 size={12} />
+                          </button>
                         </div>
                       </div>
                     </div>
