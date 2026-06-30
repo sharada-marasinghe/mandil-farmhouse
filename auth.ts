@@ -18,12 +18,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null;
         }
 
-        // Fetch user from the database
+        // Fetch user from the database by email
         const user = await db.user.findUnique({
-          where: { username: credentials.username as string },
+          where: { email: credentials.username as string },
         });
 
-        if (user) {
+        if (user && user.password && user.isActive !== false) {
           const isValid = await bcrypt.compare(
             credentials.password as string,
             user.password
@@ -32,8 +32,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           if (isValid) {
             return {
               id: user.id,
-              name: user.name || user.username,
-              email: `${user.username}@mandilfarmhouse.com`,
+              name: user.name,
+              email: user.email,
               role: user.role,
             };
           }

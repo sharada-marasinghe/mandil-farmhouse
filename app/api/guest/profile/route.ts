@@ -18,12 +18,14 @@ export async function GET() {
 
     const user = await db.user.findUnique({
       where: {
-        username: session.user.email,
+        email: session.user.email,
       },
       select: {
         id: true,
-        username: true,
+        email: true,
         name: true,
+        phoneNumber: true,
+        image: true,
         role: true,
       },
     });
@@ -35,16 +37,15 @@ export async function GET() {
       );
     }
 
-    // Return the user. Include fallback mock data for fields not in the database schema.
     return NextResponse.json({
       success: true,
       profile: {
         id: user.id,
         name: user.name || "",
-        email: user.username,
-        phone: "0771234567", // Mocked fallback
-        city: "Colombo",     // Mocked fallback
-        avatarUrl: session.user.image || null,
+        email: user.email,
+        phone: user.phoneNumber || "",
+        city: "Colombo", // Mocked fallback for non-schema field
+        avatarUrl: user.image || null,
       },
     });
   } catch (error: any) {
@@ -67,11 +68,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const { name, phone, city, currentPassword, newPassword, avatarUrl } = await request.json();
+    const { name, phone, currentPassword, newPassword, avatarUrl } = await request.json();
 
     const user = await db.user.findUnique({
       where: {
-        username: session.user.email,
+        email: session.user.email,
       },
     });
 
@@ -88,8 +89,16 @@ export async function POST(request: Request) {
       updateData.name = name;
     }
 
+    if (phone) {
+      updateData.phoneNumber = phone;
+    }
+
+    if (avatarUrl) {
+      updateData.image = avatarUrl;
+    }
+
     // Handle Password Change if requested
-    if (currentPassword && newPassword) {
+    if (currentPassword && newPassword && user.password) {
       const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
       if (!isPasswordValid) {
         return NextResponse.json(
@@ -102,13 +111,15 @@ export async function POST(request: Request) {
 
     const updatedUser = await db.user.update({
       where: {
-        username: session.user.email,
+        email: session.user.email,
       },
       data: updateData,
       select: {
         id: true,
-        username: true,
+        email: true,
         name: true,
+        phoneNumber: true,
+        image: true,
       },
     });
 
@@ -117,10 +128,10 @@ export async function POST(request: Request) {
       profile: {
         id: updatedUser.id,
         name: updatedUser.name || "",
-        email: updatedUser.username,
-        phone: phone || "0771234567",
-        city: city || "Colombo",
-        avatarUrl: avatarUrl || null,
+        email: updatedUser.email,
+        phone: updatedUser.phoneNumber,
+        city: "Colombo",
+        avatarUrl: updatedUser.image || null,
       },
     });
   } catch (error: any) {

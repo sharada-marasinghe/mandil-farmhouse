@@ -17,29 +17,32 @@ const adapter = new PrismaPg({ connectionString: databaseUrl });
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  const username = "admin";
+  const email = "admin@mandilfarmhouse.com";
   const plaintextPassword = "0779911825Asd";
+  const phoneNumber = "0779911825";
 
-  console.log(`[Seed] Hashing password for user "${username}"...`);
+  console.log(`[Seed] Hashing password for user "${email}"...`);
   const passwordHash = await bcrypt.hash(plaintextPassword, 10);
 
   console.log(`[Seed] Upserting user into database...`);
   const user = await prisma.user.upsert({
-    where: { username },
+    where: { email },
     update: {
       password: passwordHash,
       name: "Administrator",
-      role: "SUPERADMIN",
+      role: "SUPER_ADMIN",
+      phoneNumber,
     },
     create: {
-      username,
+      email,
       password: passwordHash,
       name: "Administrator",
-      role: "SUPERADMIN",
+      role: "SUPER_ADMIN",
+      phoneNumber,
     },
   });
 
-  console.log(`[Seed] Superadmin user initialized: ${user.username} (ID: ${user.id})`);
+  console.log(`[Seed] Superadmin user initialized: ${user.email} (ID: ${user.id})`);
 
   console.log(`[Seed] Seeding sample amenities...`);
   const amenitiesToSeed = [

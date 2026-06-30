@@ -27,7 +27,7 @@ export default function RegisterPage() {
     setError(null);
     setSuccess(null);
 
-    if (!fullName || !email || !password) {
+    if (!fullName || !email || !password || !phone) {
       setError("Please fill in all required credentials.");
       setLoading(false);
       return;
@@ -195,7 +195,7 @@ export default function RegisterPage() {
 
             {/* Phone Number Field */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold uppercase tracking-wider text-slate-450">Phone Number (Optional)</label>
+              <label className="text-xs font-semibold uppercase tracking-wider text-slate-450">Phone Number</label>
               <div className="relative">
                 <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400"><FiPhone /></span>
                 <input
@@ -204,6 +204,7 @@ export default function RegisterPage() {
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="07XXXXXXXX"
                   className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-[#00966B] transition-colors text-xs"
+                  required
                 />
               </div>
             </div>

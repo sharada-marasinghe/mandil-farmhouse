@@ -6,18 +6,17 @@ export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   try {
-    const { name, email, password } = await request.json();
+    const { name, email, phone, password } = await request.json();
 
-    if (!name || !email || !password) {
+    if (!name || !email || !phone || !password) {
       return NextResponse.json(
-        { success: false, error: "Name, email, and password are required." },
+        { success: false, error: "Name, email, phone number, and password are required." },
         { status: 400 }
       );
     }
 
-    // Map email directly to username in database schema
     const existingUser = await db.user.findUnique({
-      where: { username: email },
+      where: { email },
     });
 
     if (existingUser) {
@@ -27,12 +26,24 @@ export async function POST(request: Request) {
       );
     }
 
+    const existingPhone = await db.user.findUnique({
+      where: { phoneNumber: phone },
+    });
+
+    if (existingPhone) {
+      return NextResponse.json(
+        { success: false, error: "An account with this phone number already exists." },
+        { status: 400 }
+      );
+    }
+
     // Hash the password with bcryptjs
     const hashedPassword = await bcrypt.hash(password, 10);
 
     await db.user.create({
       data: {
-        username: email,
+        email,
+        phoneNumber: phone,
         password: hashedPassword,
         name: name,
         role: "GUEST",

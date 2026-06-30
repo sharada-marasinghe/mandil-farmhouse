@@ -31,8 +31,8 @@ import {
   FiChevronRight,
   FiImage
 } from "react-icons/fi";
-import { HiOutlineSparkles } from "react-icons/hi";
 import { BookingStatus, PricingModel, AmenityBilling } from "@/app/generated/prisma/enums";
+import AdminSidebar from "./AdminSidebar";
 
 // ─── Interfaces ─────────────────────────────────────────────────────────────
 interface ActivityLog {
@@ -572,91 +572,15 @@ export default function DashboardClient({
   return (
     <div className="flex flex-1 w-full min-h-screen bg-slate-50">
 
-      {/* ─── Sidebar Navigation (Fixed Desktop View) ────────────────────────── */}
-      <aside className="w-64 min-h-screen bg-white border-r border-slate-200 flex flex-col p-6 sticky top-16">
-
-        {/* Navigation list */}
-        <nav className="flex-1 space-y-2.5">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-450 block px-4 mb-4">
-            Resort Management
-          </span>
-
-          <button
-            onClick={() => setActiveTab("dashboard")}
-            className={`w-full flex items-center gap-3 px-4 py-3 text-xs font-semibold rounded-xl border transition-all duration-200 cursor-pointer ${activeTab === "dashboard"
-                ? "bg-emerald-50 text-emerald-800 border-emerald-100/70"
-                : "bg-transparent text-slate-650 hover:bg-slate-50 hover:text-slate-900 border-transparent"
-              }`}
-          >
-            <FiPieChart size={15} />
-            Dashboard Overview
-          </button>
-
-          <button
-            onClick={() => setActiveTab("bookings")}
-            className={`w-full flex items-center gap-3 px-4 py-3 text-xs font-semibold rounded-xl border transition-all duration-200 cursor-pointer ${activeTab === "bookings"
-                ? "bg-emerald-50 text-emerald-800 border-emerald-100/70"
-                : "bg-transparent text-slate-650 hover:bg-slate-50 hover:text-slate-900 border-transparent"
-              }`}
-          >
-            <FiCalendar size={15} />
-            Reservations Console
-          </button>
-
-          <button
-            onClick={() => setActiveTab("packages")}
-            className={`w-full flex items-center gap-3 px-4 py-3 text-xs font-semibold rounded-xl border transition-all duration-200 cursor-pointer ${activeTab === "packages"
-                ? "bg-emerald-50 text-emerald-800 border-emerald-100/70"
-                : "bg-transparent text-slate-650 hover:bg-slate-50 hover:text-slate-900 border-transparent"
-              }`}
-          >
-            <FiLayers size={15} />
-            Lakeside Packages
-          </button>
-
-          <button
-            onClick={() => setActiveTab("assets")}
-            className={`w-full flex items-center justify-between px-4 py-3 text-xs font-semibold rounded-xl border transition-all duration-200 cursor-pointer ${activeTab === "assets"
-                ? "bg-emerald-50 text-emerald-800 border-emerald-100/70"
-                : "bg-transparent text-slate-650 hover:bg-slate-50 hover:text-slate-900 border-transparent"
-              }`}
-          >
-            <span className="flex items-center gap-3">
-              <FiTag size={15} />
-              Assets &amp; Add-ons
-            </span>
-            <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-mono">
-              {amenities.length}
-            </span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab("activities")}
-            className={`w-full flex items-center justify-between px-4 py-3 text-xs font-semibold rounded-xl border transition-all duration-200 cursor-pointer ${activeTab === "activities"
-                ? "bg-emerald-50 text-emerald-800 border-emerald-100/70"
-                : "bg-transparent text-slate-650 hover:bg-slate-50 hover:text-slate-900 border-transparent"
-              }`}
-          >
-            <span className="flex items-center gap-3">
-              <FiCompass size={15} />
-              Resort Activities
-            </span>
-            <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-mono">
-              {activities.length}
-            </span>
-          </button>
-
-          <div className="pt-2.5 mt-2.5 border-t border-slate-100">
-            <Link
-              href="/admin/settings"
-              className="w-full flex items-center gap-3 px-4 py-3 text-xs font-semibold rounded-xl border transition-all duration-200 cursor-pointer bg-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900 border-transparent"
-            >
-              <FiSettings size={15} />
-              System Settings
-            </Link>
-          </div>
-        </nav>
-      </aside>
+      {/* ─── Premium Sidebar Navigation ─────────────────────────────────── */}
+      <AdminSidebar
+        counts={{
+          bookings: bookings.length,
+          packages: packages.length,
+          assets: amenities.length,
+          activities: activities.length,
+        }}
+      />
 
       {/* ─── Main Content Workspace ─────────────────────────────────────────── */}
       <main className="flex-1 bg-slate-50 p-8 w-full min-h-screen flex flex-col items-start space-y-6 overflow-y-auto">

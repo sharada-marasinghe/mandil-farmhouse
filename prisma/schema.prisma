@@ -1,5 +1,5 @@
 // ─── Mandil Farmhouse — Prisma Schema ────────────────────────────────────────
-// Prisma 7 uses provider = "prisma-client" (NOT "prisma-client-js").
+// Prisma Uses provider = "prisma-client" (NOT "prisma-client-js").
 // Generated client output: app/generated/prisma
 // Import in application code: import { PrismaClient } from "@/app/generated/prisma"
 // ─────────────────────────────────────────────────────────────────────────────
@@ -14,6 +14,12 @@ datasource db {
 }
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  SUPER_ADMIN
+  RESORT_MANAGER
+  GUEST
+}
 
 enum BookingStatus {
   PENDING
@@ -68,6 +74,10 @@ model Booking {
   packageId       String
   package         Package       @relation(fields: [packageId], references: [id])
 
+  // User Relation
+  userId          String?
+  user            User?         @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
   // Timestamps
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
@@ -96,13 +106,18 @@ model ActivityLog {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  username  String   @unique
-  password  String   // Hashed password
-  name      String?
-  role      String   @default("admin")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String    @id @default(cuid())
+  name        String
+  email       String    @unique
+  phoneNumber String    @unique
+  password    String?   // Hashed password
+  image       String?   // Profile image URL
+  role        Role      @default(GUEST)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  bookings    Booking[]
 
   @@map("users")
 }
@@ -133,5 +148,3 @@ model Activity {
 
   @@map("activities")
 }
-
-
