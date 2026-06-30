@@ -238,12 +238,8 @@ export default function UserManagementPage() {
   });
 
   return (
-    <div className="flex flex-1 w-full min-h-screen bg-slate-50">
-      
-      <AdminSidebar />
-
-      {/* ─── MAIN WORKSPACE CONTENT ─────────────────────────────────────────── */}
-      <main className="flex-1 bg-slate-50 p-8 w-full min-h-screen flex flex-col items-start space-y-6 overflow-y-auto">
+    <>
+      <div className="p-8 space-y-6 w-full">
         
         {/* Header Title */}
         <div className="w-full flex items-center justify-between">
@@ -531,7 +527,7 @@ export default function UserManagementPage() {
           </div>
         )}
 
-      </main>
+    </div>
 
       {/* ─── EDIT USER MODAL DIALOG ─────────────────────────────────────────── */}
       {editingUser && (
@@ -665,7 +661,6 @@ export default function UserManagementPage() {
           </div>
         </div>
       )}
-
-    </div>
+    </>
   );
 }

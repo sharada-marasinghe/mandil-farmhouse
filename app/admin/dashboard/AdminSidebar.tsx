@@ -17,11 +17,9 @@ interface NavItem {
   href: string;
   icon: React.ElementType;
   badge?: number;
-  matchExact?: boolean;
 }
 
 interface AdminSidebarProps {
-  /** Badge counts to show on nav items — keyed by href */
   counts?: {
     bookings?: number;
     packages?: number;
@@ -31,80 +29,35 @@ interface AdminSidebarProps {
   };
 }
 
+const NAV_ITEMS: NavItem[] = [
+  { label: "Dashboard Overview",   href: "/admin/dashboard",     icon: LayoutDashboard },
+  { label: "Reservations Console", href: "/admin/reservations",  icon: CalendarDays },
+  { label: "Lakeside Packages",    href: "/admin/packages",      icon: Layers },
+  { label: "Assets & Add-ons",     href: "/admin/assets",        icon: Tag },
+  { label: "Resort Activities",    href: "/admin/activities",    icon: Compass },
+  { label: "User Management",      href: "/admin/users",         icon: Users },
+];
+
+const SYSTEM_ITEMS: NavItem[] = [
+  { label: "System Settings", href: "/admin/settings", icon: Settings },
+];
+
 export default function AdminSidebar({ counts = {} }: AdminSidebarProps) {
   const pathname = usePathname();
 
-  const primaryNav: NavItem[] = [
-    {
-      label: "Dashboard Overview",
-      href: "/admin/dashboard",
-      icon: LayoutDashboard,
-      matchExact: true,
-    },
-    {
-      label: "Reservations Console",
-      href: "/admin/dashboard?tab=bookings",
-      icon: CalendarDays,
-      badge: counts.bookings,
-    },
-    {
-      label: "Lakeside Packages",
-      href: "/admin/dashboard?tab=packages",
-      icon: Layers,
-      badge: counts.packages,
-    },
-    {
-      label: "Assets & Add-ons",
-      href: "/admin/dashboard?tab=assets",
-      icon: Tag,
-      badge: counts.assets,
-    },
-    {
-      label: "Resort Activities",
-      href: "/admin/dashboard?tab=activities",
-      icon: Compass,
-      badge: counts.activities,
-    },
-    {
-      label: "User Management",
-      href: "/admin/users",
-      icon: Users,
-      badge: counts.users,
-    },
-  ];
-
-  const systemNav: NavItem[] = [
-    {
-      label: "System Settings",
-      href: "/admin/settings",
-      icon: Settings,
-    },
-  ];
-
-  // Determine active item
-  const isActive = (item: NavItem) => {
-    if (item.matchExact) {
-      return pathname === item.href;
-    }
-    // For href with query, match pathname + the tab param
-    const [basePath, query] = item.href.split("?");
-    if (query) {
-      const params = new URLSearchParams(query);
-      const tab = params.get("tab");
-      // Check current URL for this tab via window.location if available
-      if (typeof window !== "undefined") {
-        const currentTab = new URLSearchParams(window.location.search).get("tab");
-        return pathname === basePath && currentTab === tab;
-      }
-      return false;
-    }
-    // Exact path match
-    return pathname === item.href;
+  // Map badge counts by route
+  const badgeMap: Record<string, number | undefined> = {
+    "/admin/reservations": counts.bookings,
+    "/admin/packages":     counts.packages,
+    "/admin/assets":       counts.assets,
+    "/admin/activities":   counts.activities,
+    "/admin/users":        counts.users,
   };
 
   const NavLink = ({ item }: { item: NavItem }) => {
-    const active = isActive(item);
+    const active = pathname === item.href || pathname.startsWith(item.href + "/");
     const Icon = item.icon;
+    const badge = badgeMap[item.href];
 
     return (
       <Link
@@ -118,7 +71,7 @@ export default function AdminSidebar({ counts = {} }: AdminSidebarProps) {
           }
         `}
       >
-        {/* Left accent bar for active state */}
+        {/* 3px left accent bar — only visible when active */}
         {active && (
           <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full bg-emerald-600" />
         )}
@@ -133,16 +86,15 @@ export default function AdminSidebar({ counts = {} }: AdminSidebarProps) {
 
         <span className="flex-1 leading-none">{item.label}</span>
 
-        {/* Count badge */}
-        {item.badge !== undefined && item.badge > 0 && (
+        {badge !== undefined && badge > 0 && (
           <span className={`
             text-[10px] font-semibold px-2 py-0.5 rounded-full border leading-none
             ${active
               ? "bg-emerald-100 text-emerald-700 border-emerald-200"
-              : "bg-slate-100 text-slate-600 border-slate-150"
+              : "bg-slate-100 text-slate-600 border-slate-200"
             }
           `}>
-            {item.badge}
+            {badge}
           </span>
         )}
       </Link>
@@ -152,31 +104,31 @@ export default function AdminSidebar({ counts = {} }: AdminSidebarProps) {
   return (
     <aside className="w-[240px] min-h-[calc(100vh-60px)] bg-white border-r border-slate-100/80 flex flex-col py-5 px-3 sticky top-[60px] shadow-[1px_0_0_0_rgba(0,0,0,0.03)] flex-shrink-0">
 
-      {/* ── Section Label ───────────────────────────────────────────────── */}
+      {/* Section label */}
       <div className="px-4 mb-3">
         <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-350">
           Resort Management
         </span>
       </div>
 
-      {/* ── Primary Navigation ───────────────────────────────────────────── */}
+      {/* Primary nav */}
       <nav className="flex-1 flex flex-col gap-0.5">
-        {primaryNav.map((item) => (
+        {NAV_ITEMS.map((item) => (
           <NavLink key={item.href} item={item} />
         ))}
       </nav>
 
-      {/* ── Divider ─────────────────────────────────────────────────────── */}
+      {/* Divider */}
       <div className="my-3 border-t border-slate-100/80" />
 
-      {/* ── System Navigation ───────────────────────────────────────────── */}
+      {/* System nav */}
       <nav className="flex flex-col gap-0.5">
-        {systemNav.map((item) => (
+        {SYSTEM_ITEMS.map((item) => (
           <NavLink key={item.href} item={item} />
         ))}
       </nav>
 
-      {/* ── Footer Brand Mark ───────────────────────────────────────────── */}
+      {/* Footer mark */}
       <div className="mt-4 px-4 pt-3 border-t border-slate-100/80">
         <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-slate-300">
           Mandil Farmhouse

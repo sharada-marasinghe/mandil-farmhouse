@@ -131,10 +131,7 @@ export default function AdminSettingsPage() {
   ];
 
   return (
-    <div className="flex flex-1 w-full min-h-screen bg-slate-50">
-      <AdminSidebar />
-
-      <main className="flex-1 bg-slate-50 p-8 w-full min-h-screen flex flex-col items-start space-y-6 overflow-y-auto">
+    <div className="p-8 space-y-6 w-full">
 
         {/* Header */}
         <div className="w-full flex items-center justify-between">
@@ -276,7 +273,6 @@ export default function AdminSettingsPage() {
             )}
           </div>
         )}
-      </main>
-    </div>
+      </div>
   );
 }
