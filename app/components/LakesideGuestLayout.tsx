@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Navbar from "./Navbar";
 import Link from "next/link";
 import Image from "next/image";
+import { useBranding } from "./BrandingProvider";
 import { 
   FiCalendar, 
   FiUsers, 
@@ -194,6 +195,7 @@ function nameToAlt(name: string): string {
 }
 
 export default function LakesideGuestLayout() {
+  const { config } = useBranding();
   // ─── State Management ──────────────────────────────────────────────────────
   const [packages, setPackages] = useState<Package[]>(DEFAULT_PACKAGES);
   const [hasGalleryImages, setHasGalleryImages] = useState<boolean | null>(null);
@@ -241,7 +243,7 @@ export default function LakesideGuestLayout() {
         const supabase = createClient();
         const { data, error: storageError } = await supabase.storage
           .from("images-b")
-          .list("", {
+          .list("gallery", {
             limit: 12,
             offset: 0,
             sortBy: { column: "created_at", order: "desc" },
@@ -259,6 +261,7 @@ export default function LakesideGuestLayout() {
         }
 
         const imageFiles = data.filter((file) =>
+          file.name !== ".emptyFolderPlaceholder" &&
           /\.(jpg|jpeg|png|webp|avif|gif)$/i.test(file.name)
         );
 
@@ -272,9 +275,10 @@ export default function LakesideGuestLayout() {
         setHasGalleryImages(true);
 
         const imagesWithUrls: GalleryImage[] = imageFiles.map((file, index) => {
+          const filePath = `gallery/${file.name}`;
           const { data: urlData } = supabase.storage
             .from("images-b")
-            .getPublicUrl(file.name);
+            .getPublicUrl(filePath);
 
           return {
             url: urlData.publicUrl,
@@ -469,7 +473,7 @@ export default function LakesideGuestLayout() {
 
           {/* Subtitle */}
           <p className="text-base sm:text-lg text-slate-600 font-normal max-w-2xl mb-8 leading-relaxed">
-            Discover <span className="text-emerald-700 font-semibold">Mandil Farmhouse</span> — where tropical serenity meets luxury boat safaris, traditional feasts, and unforgettable family moments on Bolgoda Lake.
+            Discover <span className="text-emerald-700 font-semibold">{config.systemName}</span> — where tropical serenity meets luxury boat safaris, traditional feasts, and unforgettable family moments on Bolgoda Lake.
           </p>
 
           {/* CTA Buttons */}
@@ -510,7 +514,7 @@ export default function LakesideGuestLayout() {
               Glimpses of Paradise
             </h2>
             <p className="text-slate-500 text-sm max-w-xl">
-              Every corner of Mandil Farmhouse is a frame-worthy moment waiting to be captured.
+              Every corner of {config.systemName} is a frame-worthy moment waiting to be captured.
             </p>
           </div>
 
@@ -1007,20 +1011,33 @@ export default function LakesideGuestLayout() {
             {/* Brand */}
             <div className="lg:col-span-2">
               <div className="flex items-center gap-2.5 mb-4">
-                <div className="w-9 h-9 rounded-lg bg-emerald-600 flex items-center justify-center text-white font-bold shadow-sm">
-                  M
-                </div>
+                {config.logoUrl ? (
+                  <div className="relative w-9 h-9 rounded-lg overflow-hidden flex items-center justify-center shadow-sm">
+                    <Image
+                      src={config.logoUrl}
+                      alt={config.systemName}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-9 h-9 rounded-lg bg-emerald-600 flex items-center justify-center text-white font-bold shadow-sm">
+                    {config.systemName.charAt(0).toUpperCase()}
+                  </div>
+                )}
                 <div>
                   <span className="font-semibold text-slate-900 text-base leading-none block">
-                    Mandil
+                    {config.systemName.split(" ")[0]}
                   </span>
-                  <span className="block text-[9px] font-bold tracking-widest text-emerald-600 uppercase leading-none mt-0.5">
-                    Farmhouse
-                  </span>
+                  {config.systemName.split(" ").slice(1).join(" ") && (
+                    <span className="block text-[9px] font-bold tracking-widest text-emerald-600 uppercase leading-none mt-0.5">
+                      {config.systemName.split(" ").slice(1).join(" ")}
+                    </span>
+                  )}
                 </div>
               </div>
               <p className="text-slate-500 text-sm leading-relaxed max-w-xs mb-6">
-                Nestled on the serene shores of Bolgoda Lake, Mandil Farmhouse offers an authentic escape into nature — luxury boat safaris, traditional feasts, and memories that last a lifetime.
+                Nestled on the serene shores of Bolgoda Lake, {config.systemName} offers an authentic escape into nature — luxury boat safaris, traditional feasts, and memories that last a lifetime.
               </p>
               <div className="flex items-center gap-3">
                 <a 
@@ -1093,7 +1110,7 @@ export default function LakesideGuestLayout() {
           {/* Bottom bar */}
           <div className="border-t border-slate-200/80 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
             <p className="text-xs text-slate-400">
-              © {currentYear} Mandil Farmhouse. All rights reserved.
+              © {currentYear} {config.systemName}. All rights reserved.
             </p>
             <button
               onClick={scrollToTop}

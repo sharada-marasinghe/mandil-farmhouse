@@ -157,7 +157,7 @@ export default function AllPackagesPage() {
   // Filter States
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [maxPrice, setMaxPrice] = useState(30000);
+  const [maxPrice, setMaxPrice] = useState(150000);
   const [selectedDuration, setSelectedDuration] = useState("all");
 
   // Load packages
@@ -307,7 +307,7 @@ export default function AllPackagesPage() {
   const handleClearFilters = () => {
     setSearchTerm("");
     setSelectedCategory("all");
-    setMaxPrice(35000);
+    setMaxPrice(150000);
     setSelectedDuration("all");
   };
 
@@ -320,7 +320,7 @@ export default function AllPackagesPage() {
   const activeFiltersCount = 
     (searchTerm ? 1 : 0) + 
     (selectedCategory !== "all" ? 1 : 0) + 
-    (maxPrice < 35000 ? 1 : 0) + 
+    (maxPrice < 150000 ? 1 : 0) + 
     (selectedDuration !== "all" ? 1 : 0);
 
   return (
@@ -458,15 +458,15 @@ export default function AllPackagesPage() {
                 <input
                   type="range"
                   min="3000"
-                  max="40000"
-                  step="500"
+                  max="150000"
+                  step="1000"
                   value={maxPrice}
                   onChange={(e) => setMaxPrice(Number(e.target.value))}
                   className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#00966B]"
                 />
                 <div className="flex justify-between text-[10px] text-slate-400 font-bold">
                   <span>Min: Rs. 3,000</span>
-                  <span>Max: Rs. 40,000</span>
+                  <span>Max: Rs. 150,000</span>
                 </div>
               </div>
 

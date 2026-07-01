@@ -3,6 +3,8 @@
 import { signOut } from "next-auth/react";
 import Link from "next/link";
 import { useState } from "react";
+import Image from "next/image";
+import { useBranding } from "@/app/components/BrandingProvider";
 import { 
   Anchor, 
   Sparkles,
@@ -19,6 +21,7 @@ interface AdminNavbarProps {
 
 export default function AdminNavbar({ user }: AdminNavbarProps) {
   const [profileOpen, setProfileOpen] = useState(false);
+  const { config } = useBranding();
 
   const initials = user?.name
     ? user.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
@@ -30,18 +33,29 @@ export default function AdminNavbar({ user }: AdminNavbarProps) {
 
         {/* ── Brand Logo ───────────────────────────────────────────────── */}
         <Link href="/admin/dashboard" className="flex items-center gap-3 group">
-          <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-md shadow-emerald-200 group-hover:shadow-emerald-300 transition-shadow duration-300">
-            <Anchor className="text-white" size={16} strokeWidth={2} />
-            <div className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-amber-400 border-2 border-white flex items-center justify-center">
-              <Sparkles size={7} className="text-amber-800" />
+          {config.logoUrl ? (
+            <div className="relative w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center shadow-md transition-transform duration-200 group-hover:scale-105">
+              <Image
+                src={config.logoUrl}
+                alt={config.systemName}
+                fill
+                className="object-cover"
+              />
             </div>
-          </div>
+          ) : (
+            <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-md shadow-emerald-200 group-hover:shadow-emerald-300 transition-shadow duration-300">
+              <Anchor className="text-white" size={16} strokeWidth={2} />
+              <div className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-amber-400 border-2 border-white flex items-center justify-center">
+                <Sparkles size={7} className="text-amber-800" />
+              </div>
+            </div>
+          )}
           <div className="flex flex-col">
             <span className="font-bold text-[15px] text-slate-900 leading-none tracking-tight">
-              Mandil
+              {config.systemName.split(" ")[0]}
             </span>
             <span className="text-[9px] font-bold tracking-[0.18em] text-emerald-600 uppercase leading-none mt-[3px]">
-              Farmhouse Admin
+              {config.systemName.split(" ").slice(1).join(" ") || "Resort"} Admin
             </span>
           </div>
         </Link>

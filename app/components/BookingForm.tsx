@@ -513,6 +513,15 @@ export default function BookingForm() {
                 )}
               </div>
             </div>
+
+            {/* Debug Block */}
+            <div className="text-[10px] text-red-500 bg-red-50 p-2.5 rounded-lg border border-red-150 mt-4 font-mono space-y-1">
+              <div>pkgId: {selectedPackageId || "none"}</div>
+              <div>pkgFound: {activePackage ? activePackage.name : "no"}</div>
+              <div>amenitiesCount: {amenities.length}</div>
+              <div>assetsCost: {attachedAssetsCost}</div>
+              <div>storedKeys: {typeof window !== "undefined" ? Object.keys(JSON.parse(localStorage.getItem("mandil_package_metadata") || "{}")).join(", ") : "ssr"}</div>
+            </div>
           </div>
 
           {/* Policies Checklist */}

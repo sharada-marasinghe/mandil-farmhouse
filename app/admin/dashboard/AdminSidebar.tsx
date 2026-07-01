@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useBranding } from "@/app/components/BrandingProvider";
 import {
   LayoutDashboard,
   CalendarDays,
@@ -44,6 +45,7 @@ const SYSTEM_ITEMS: NavItem[] = [
 
 export default function AdminSidebar({ counts = {} }: AdminSidebarProps) {
   const pathname = usePathname();
+  const { config } = useBranding();
 
   // Map badge counts by route
   const badgeMap: Record<string, number | undefined> = {
@@ -67,7 +69,7 @@ export default function AdminSidebar({ counts = {} }: AdminSidebarProps) {
           transition-all duration-200 group
           ${active
             ? "bg-emerald-50/80 text-emerald-800"
-            : "text-slate-550 hover:bg-slate-50 hover:text-slate-900"
+            : "text-slate-555 hover:bg-slate-50 hover:text-slate-900"
           }
         `}
       >
@@ -130,8 +132,8 @@ export default function AdminSidebar({ counts = {} }: AdminSidebarProps) {
 
       {/* Footer mark */}
       <div className="mt-4 px-4 pt-3 border-t border-slate-100/80">
-        <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-slate-300">
-          Mandil Farmhouse
+        <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-slate-350">
+          {config.systemName}
         </p>
         <p className="text-[9px] text-slate-300 mt-0.5">Admin Console v2.0</p>
       </div>

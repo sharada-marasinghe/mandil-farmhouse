@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { SessionProvider } from "next-auth/react";
+import fs from "fs";
+import path from "path";
+import { BrandingProvider, THEMES } from "@/app/components/BrandingProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -18,11 +21,30 @@ export const metadata: Metadata = {
   },
 };
 
+function getSystemConfig() {
+  try {
+    const filePath = path.join(process.cwd(), "prisma", "system_config.json");
+    if (fs.existsSync(filePath)) {
+      return JSON.parse(fs.readFileSync(filePath, "utf-8"));
+    }
+  } catch (e) {
+    console.error("Error reading system config in layout:", e);
+  }
+  return {
+    systemName: "Mandil Farmhouse",
+    logoUrl: "/boat-safari.png",
+    themeColor: "emerald"
+  };
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const config = getSystemConfig();
+  const themeColors = THEMES[config.themeColor] || THEMES.emerald;
+
   return (
     <html
       lang="en"
@@ -90,6 +112,12 @@ export default function RootLayout({
                     clean();
                   }
                 }
+
+                // 3. Dynamic brand theme initialization
+                const colors = ${JSON.stringify(themeColors)};
+                for (const [key, val] of Object.entries(colors)) {
+                  document.documentElement.style.setProperty('--theme-' + key, val);
+                }
               })();
             `
           }}
@@ -108,7 +136,9 @@ export default function RootLayout({
         suppressHydrationWarning={true}
       >
         <SessionProvider>
-          {children}
+          <BrandingProvider initialConfig={config}>
+            {children}
+          </BrandingProvider>
         </SessionProvider>
       </body>
     </html>

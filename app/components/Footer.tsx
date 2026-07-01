@@ -1,8 +1,11 @@
 "use client";
 
 import { FiArrowUp, FiPhone, FiMapPin, FiInstagram, FiFacebook } from "react-icons/fi";
+import Image from "next/image";
+import { useBranding } from "@/app/components/BrandingProvider";
 
 export default function Footer() {
+  const { config } = useBranding();
   const year = new Date().getFullYear();
 
   const scrollToTop = () => {
@@ -12,23 +15,36 @@ export default function Footer() {
   return (
     <footer
       id="contact"
-      className="bg-slate-50 border-t border-slate-200/80 py-16 px-4 sm:px-6 lg:px-8 w-full flex flex-col items-center text-slate-600"
+      className="bg-slate-50 border-t border-slate-200/80 py-16 px-4 sm:px-6 lg:px-8 w-full flex flex-col items-center text-slate-650"
     >
       <div className="w-full max-w-6xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
           {/* Brand */}
           <div className="lg:col-span-2">
             <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-9 h-9 rounded-lg bg-emerald-600 flex items-center justify-center text-white font-bold shadow-sm">
-                M
-              </div>
+              {config.logoUrl ? (
+                <div className="relative w-9 h-9 rounded-lg overflow-hidden flex items-center justify-center shadow-sm">
+                  <Image
+                    src={config.logoUrl}
+                    alt={config.systemName}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="w-9 h-9 rounded-lg bg-emerald-600 flex items-center justify-center text-white font-bold shadow-sm">
+                  {config.systemName.charAt(0).toUpperCase()}
+                </div>
+              )}
               <div>
                 <span className="font-semibold text-slate-900 text-base leading-none block">
-                  Mandil
+                  {config.systemName.split(" ")[0]}
                 </span>
-                <span className="block text-[9px] font-bold tracking-widest text-emerald-600 uppercase leading-none mt-0.5">
-                  Farmhouse
-                </span>
+                {config.systemName.split(" ").slice(1).join(" ") && (
+                  <span className="block text-[9px] font-bold tracking-widest text-emerald-600 uppercase leading-none mt-0.5">
+                    {config.systemName.split(" ").slice(1).join(" ")}
+                  </span>
+                )}
               </div>
             </div>
             <p className="text-slate-500 text-sm leading-relaxed max-w-xs mb-6">
@@ -95,7 +111,7 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="border-t border-slate-200/80 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-xs text-slate-400">
-            © {year} Mandil Farmhouse. All rights reserved.
+            © {year} {config.systemName}. All rights reserved.
           </p>
           <button
             onClick={scrollToTop}

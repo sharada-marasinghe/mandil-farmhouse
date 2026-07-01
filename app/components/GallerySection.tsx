@@ -59,7 +59,7 @@ export default function GallerySection() {
         const supabase = createClient();
         const { data, error: storageError } = await supabase.storage
           .from(BUCKET_NAME)
-          .list("", {
+          .list("gallery", {
             limit: MAX_GALLERY_IMAGES,
             offset: 0,
             sortBy: { column: "created_at", order: "desc" },
@@ -75,13 +75,15 @@ export default function GallerySection() {
         }
 
         const imageFiles = data.filter((file) =>
+          file.name !== ".emptyFolderPlaceholder" &&
           /\.(jpg|jpeg|png|webp|avif|gif)$/i.test(file.name)
         );
 
         const galleryImages: GalleryImage[] = imageFiles.map((file, index) => {
+          const filePath = `gallery/${file.name}`;
           const { data: urlData } = supabase.storage
             .from(BUCKET_NAME)
-            .getPublicUrl(file.name);
+            .getPublicUrl(filePath);
 
           return {
             url: urlData.publicUrl,

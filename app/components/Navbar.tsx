@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
+import { useBranding } from "@/app/components/BrandingProvider";
 import { 
   FiMenu, 
   FiX, 
@@ -27,6 +28,7 @@ const navLinks = [
 export default function Navbar() {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const { config } = useBranding();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
@@ -98,16 +100,29 @@ export default function Navbar() {
             }}
             className="flex items-center gap-2 group cursor-pointer flex-shrink-0"
           >
-            <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white font-bold shadow-sm transition-transform duration-200 group-hover:scale-105">
-              M
-            </div>
+            {config.logoUrl ? (
+              <div className="relative w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center shadow-sm transition-transform duration-200 group-hover:scale-105">
+                <Image
+                  src={config.logoUrl}
+                  alt={config.systemName}
+                  fill
+                  className="object-cover"
+                />
+              </div>
+            ) : (
+              <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white font-bold shadow-sm transition-transform duration-200 group-hover:scale-105">
+                {config.systemName.charAt(0).toUpperCase()}
+              </div>
+            )}
             <div>
               <span className="font-semibold text-slate-900 text-base leading-none block">
-                Mandil
+                {config.systemName.split(" ")[0]}
               </span>
-              <span className="block text-[9px] font-bold tracking-widest text-emerald-600 uppercase leading-none mt-0.5">
-                Farmhouse
-              </span>
+              {config.systemName.split(" ").slice(1).join(" ") && (
+                <span className="block text-[9px] font-bold tracking-widest text-emerald-600 uppercase leading-none mt-0.5">
+                  {config.systemName.split(" ").slice(1).join(" ")}
+                </span>
+              )}
             </div>
           </Link>
 

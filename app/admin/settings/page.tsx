@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import AdminSidebar from "@/app/admin/dashboard/AdminSidebar";
+import { useBranding } from "@/app/components/BrandingProvider";
 import { 
   FiUploadCloud,
   FiTrash2,
@@ -24,10 +25,12 @@ interface GalleryImage {
 }
 
 export default function AdminSettingsPage() {
+  const { updateConfig } = useBranding();
   const [settingsTab, setSettingsTab] = useState<"branding" | "gallery">("branding");
   const [loading, setLoading] = useState(true);
   const [brandingSaving, setBrandingSaving] = useState(false);
   const [galleryUploading, setGalleryUploading] = useState(false);
+  const [logoUploading, setLogoUploading] = useState(false);
   const [notification, setNotification] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   const [config, setConfig] = useState<Config>({
@@ -73,6 +76,7 @@ export default function AdminSettingsPage() {
       });
       const data = await res.json();
       if (data.success) {
+        updateConfig(data.config);
         triggerNotification("success", "Branding preferences saved successfully.");
       } else {
         triggerNotification("error", data.error || "Failed to save branding.");
@@ -81,6 +85,28 @@ export default function AdminSettingsPage() {
       triggerNotification("error", "Network error saving branding.");
     } finally {
       setBrandingSaving(false);
+    }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setLogoUploading(true);
+    const formData = new FormData();
+    formData.append("file", files[0]);
+    try {
+      const res = await fetch("/api/admin/upload-logo", { method: "POST", body: formData });
+      const data = await res.json();
+      if (data.success && data.url) {
+        setConfig((prev) => ({ ...prev, logoUrl: data.url }));
+        triggerNotification("success", "Logo image uploaded successfully. Click Save to apply.");
+      } else {
+        triggerNotification("error", data.error || "Logo upload failed.");
+      }
+    } catch {
+      triggerNotification("error", "Error uploading logo.");
+    } finally {
+      setLogoUploading(false);
     }
   };
 
@@ -212,6 +238,37 @@ export default function AdminSettingsPage() {
                           <span className="text-xs truncate">{swatch.label}</span>
                         </button>
                       ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 col-span-1 md:col-span-2 border-t border-slate-100 pt-6">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 block">Resort Logo</label>
+                    <div className="flex items-center gap-6 mt-2">
+                      <div className="relative w-16 h-16 rounded-xl border border-slate-200 overflow-hidden bg-slate-50 flex items-center justify-center">
+                        {config.logoUrl ? (
+                          <Image
+                            src={config.logoUrl}
+                            alt="Resort Logo"
+                            fill
+                            className="object-cover"
+                          />
+                        ) : (
+                          <span className="text-slate-300 text-xs">No Logo</span>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 cursor-pointer transition-colors w-fit">
+                          {logoUploading ? "Uploading..." : "Upload Logo Image"}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleLogoUpload}
+                            disabled={logoUploading}
+                            className="hidden"
+                          />
+                        </label>
+                        <p className="text-[10px] text-slate-400">PNG, JPG, WEBP recommended. Translucent backgrounds look best.</p>
+                      </div>
                     </div>
                   </div>
                 </div>
