@@ -24,6 +24,8 @@ export interface Package {
   name: string;
   description: string;
   price: number;
+  basePrice?: number;
+  attachedAssetsCost?: number;
   priceType: string; // "Group" or "Person"
   duration: string;
   capacity: string;
@@ -162,8 +164,13 @@ export default function AllPackagesPage() {
   useEffect(() => {
     async function loadPackages() {
       try {
-        const res = await fetch("/api/packages");
+        const [res, inventoryRes] = await Promise.all([
+          fetch("/api/packages"),
+          fetch("/api/admin/inventory")
+        ]);
         const data = await res.json();
+        const inventoryData = await inventoryRes.json();
+        const allAmenities = inventoryData.success ? inventoryData.amenities : [];
 
         if (data.success && Array.isArray(data.packages) && data.packages.length > 0) {
           const mapped: Package[] = data.packages.map((pkg: any, idx: number) => {
@@ -181,7 +188,15 @@ export default function AllPackagesPage() {
               console.warn("Could not retrieve package metadata:", e);
             }
 
-            const price = pkg.price !== undefined ? Number(pkg.price) : Number(pkg.basePrice || 0);
+            const basePrice = pkg.price !== undefined ? Number(pkg.price) : Number(pkg.basePrice || 0);
+            
+            // Find attached assets and calculate cost
+            const attachedAmenities = (meta.assets || [])
+              .map((name: string) => allAmenities.find((a: any) => a.name === name))
+              .filter(Boolean);
+            const attachedAssetsCost = attachedAmenities.reduce((sum: number, am: any) => sum + (am.price || 0), 0);
+            const price = basePrice + attachedAssetsCost;
+
             const priceType = pkg.priceType || (pkg.pricingModel === "PER_PERSON" ? "Person" : "Group");
             const duration = pkg.duration || meta.duration || (idx === 0 ? "2 Hours" : idx === 1 ? "8 Hours" : "3 Hours");
             const capacity = pkg.capacity || meta.capacity || (idx === 0 ? "Up to 12 Guests" : idx === 1 ? "Min 5 - Max 20" : "2 - 6 Guests");
@@ -231,6 +246,8 @@ export default function AllPackagesPage() {
               name: pkg.name,
               description: pkg.description || "Enjoy a premium curated escape tailored for relaxation and adventure.",
               price,
+              basePrice,
+              attachedAssetsCost,
               priceType,
               duration,
               capacity,
@@ -603,14 +620,21 @@ export default function AllPackagesPage() {
                             </div>
 
                             {/* Pricing details */}
-                            <div className="flex items-baseline gap-1 mb-4">
-                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">From</span>
-                              <span className="text-lg font-black text-[#00966B] ml-1">
-                                Rs. {pkg.price.toLocaleString("en-US")}
-                              </span>
-                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1">
-                                / {pkg.priceType}
-                              </span>
+                            <div className="flex flex-col gap-1 mb-4">
+                              <div className="flex items-baseline gap-1">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Price</span>
+                                <span className="text-lg font-black text-[#00966B] ml-1">
+                                  Rs. {pkg.price.toLocaleString("en-US")}
+                                </span>
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1">
+                                  / {pkg.priceType}
+                                </span>
+                              </div>
+                              {pkg.attachedAssetsCost && pkg.attachedAssetsCost > 0 ? (
+                                <span className="text-[10px] text-slate-500 font-medium">
+                                  (Base Rs. {pkg.basePrice?.toLocaleString("en-US")} + Rs. {pkg.attachedAssetsCost.toLocaleString("en-US")} assets)
+                                </span>
+                              ) : null}
                             </div>
 
                             {/* Action Buttons */}

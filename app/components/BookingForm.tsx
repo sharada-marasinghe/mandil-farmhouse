@@ -85,22 +85,31 @@ export default function BookingForm() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [createdBooking, setCreatedBooking] = useState<any | null>(null);
 
+  const [amenities, setAmenities] = useState<any[]>([]);
+
   useEffect(() => {
     setMounted(true);
 
-    async function fetchPackages() {
+    async function fetchData() {
       try {
-        const res = await fetch("/api/packages");
+        const [res, inventoryRes] = await Promise.all([
+          fetch("/api/packages"),
+          fetch("/api/admin/inventory")
+        ]);
         const data = await res.json();
+        const inventoryData = await inventoryRes.json();
         if (data.success && data.packages && data.packages.length > 0) {
           setPackages(data.packages);
         }
+        if (inventoryData.success && inventoryData.amenities) {
+          setAmenities(inventoryData.amenities);
+        }
       } catch (err) {
-        console.warn("Could not fetch active packages from DB, using fallback defaults.");
+        console.warn("Could not fetch active packages or inventory, using default fallbacks.");
       }
     }
 
-    fetchPackages();
+    fetchData();
   }, []);
 
   // Set default package when packages are loaded, with query param pre-select support
@@ -123,25 +132,53 @@ export default function BookingForm() {
 
   const activePackage = packages.find(p => p.id === selectedPackageId);
 
+  // Find metadata for the active package to sum attached assets cost
+  let attachedAssetsCost = 0;
+  if (activePackage) {
+    try {
+      const stored = localStorage.getItem("mandil_package_metadata");
+      if (stored) {
+        const metaMap = JSON.parse(stored);
+        const meta = metaMap[activePackage.id];
+        if (meta && meta.assets) {
+          const attachedAmenities = meta.assets.map((name: string) => {
+            const matched = amenities.find((a: any) => a.name === name);
+            return matched ? { name, price: matched.price } : { name, price: 0 };
+          });
+          attachedAssetsCost = attachedAmenities.reduce((sum: number, asset: any) => sum + (asset.price || 0), 0);
+        }
+      }
+    } catch (e) {
+      console.warn("Error reading package metadata in BookingForm:", e);
+    }
+  }
+
   const calculateTotal = () => {
-    if (!activePackage) return { amount: 0, text: "LKR 0" };
+    if (!activePackage) return { amount: 0, baseAmount: 0, assetsAmount: 0, text: "LKR 0" };
     
     if (activePackage.pricingModel === "PER_BOAT") {
-      return { 
-        amount: activePackage.basePrice, 
-        text: `LKR ${activePackage.basePrice.toLocaleString("en-US")}` 
-      };
-    }
-    
-    if (activePackage.pricingModel === "PER_PERSON") {
-      const total = activePackage.basePrice * numberOfGuests;
+      const base = activePackage.basePrice;
+      const total = base + attachedAssetsCost;
       return { 
         amount: total, 
+        baseAmount: base,
+        assetsAmount: attachedAssetsCost,
         text: `LKR ${total.toLocaleString("en-US")}` 
       };
     }
     
-    return { amount: 0, text: "Custom Quote (Admin will confirm)" };
+    if (activePackage.pricingModel === "PER_PERSON") {
+      const base = activePackage.basePrice * numberOfGuests;
+      const total = base + attachedAssetsCost;
+      return { 
+        amount: total, 
+        baseAmount: base,
+        assetsAmount: attachedAssetsCost,
+        text: `LKR ${total.toLocaleString("en-US")}` 
+      };
+    }
+    
+    return { amount: 0, baseAmount: 0, assetsAmount: 0, text: "Custom Quote (Admin will confirm)" };
   };
 
   const totalPriceObj = calculateTotal();
@@ -163,7 +200,8 @@ export default function BookingForm() {
         guestEmail: guestEmail.trim() || undefined,
         bookingDate,
         numberOfGuests,
-        packageId: selectedPackageId
+        packageId: selectedPackageId,
+        totalPrice: totalPriceObj.amount > 0 ? totalPriceObj.amount : undefined
       };
 
       const res = await fetch("/api/bookings", {
@@ -444,7 +482,20 @@ export default function BookingForm() {
               </span>
             </div>
 
-            <div className="flex justify-between items-start pt-3 border-t border-slate-100">
+            {totalPriceObj.assetsAmount > 0 && (
+              <div className="space-y-1 text-[10px] text-slate-500 bg-slate-50 p-2.5 rounded-lg border border-slate-100 mt-2">
+                <div className="flex justify-between">
+                  <span>Base Package:</span>
+                  <span className="font-semibold">LKR {totalPriceObj.baseAmount.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Included Assets:</span>
+                  <span className="font-semibold">LKR {totalPriceObj.assetsAmount.toLocaleString()}</span>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-between items-start pt-3 border-t border-slate-100 mt-3">
               <span className="text-slate-700 font-medium">Estimated Total Price:</span>
               <div className="text-right">
                 <span className="text-emerald-600 font-bold text-sm block">
@@ -452,12 +503,12 @@ export default function BookingForm() {
                 </span>
                 {activePackage && activePackage.pricingModel === "PER_BOAT" && (
                   <span className="text-[9px] text-slate-400 italic block mt-0.5">
-                    (Flat rate LKR {activePackage.basePrice.toLocaleString("en-US")} per boat)
+                    (Flat rate LKR {activePackage.basePrice.toLocaleString("en-US")} per boat + assets)
                   </span>
                 )}
                 {activePackage && activePackage.pricingModel === "PER_PERSON" && (
                   <span className="text-[9px] text-slate-400 italic block mt-0.5">
-                    (LKR {activePackage.basePrice.toLocaleString("en-US")} × {numberOfGuests} guest{numberOfGuests > 1 ? "s" : ""})
+                    (LKR {activePackage.basePrice.toLocaleString("en-US")} × {numberOfGuests} guest{numberOfGuests > 1 ? "s" : ""} + assets)
                   </span>
                 )}
               </div>

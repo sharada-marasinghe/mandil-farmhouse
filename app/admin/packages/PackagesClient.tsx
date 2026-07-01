@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import {
   FiSearch,
   FiPlus,
@@ -13,7 +14,19 @@ import {
   FiUsers,
   FiEdit,
   FiImage,
+  FiCheck,
+  FiX,
+  FiPlusCircle,
 } from "react-icons/fi";
+import "md-editor-rt/lib/style.css";
+import "md-editor-rt/lib/preview.css";
+
+const MdEditor = dynamic(() => import("md-editor-rt").then((mod) => mod.MdEditor), {
+  ssr: false,
+});
+const MdPreview = dynamic(() => import("md-editor-rt").then((mod) => mod.MdPreview), {
+  ssr: false,
+});
 
 interface Package {
   id: string;
@@ -23,6 +36,10 @@ interface Package {
   pricingModel: string;
   isActive: boolean;
   images?: string[];
+  whatsIncluded?: string[];
+  whatsExcluded?: string[];
+  timeline?: any;
+  aboutMarkdown?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -81,6 +98,25 @@ export default function PackagesClient({
   const [pkgSearchQuery, setPkgSearchQuery] = useState("");
   const [selectedAssets, setSelectedAssets] = useState<string[]>([]);
   const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [existingImages, setExistingImages] = useState<string[]>([]);
+  
+  // Rich details states
+  const [whatsIncluded, setWhatsIncluded] = useState<string[]>([]);
+  const [whatsExcluded, setWhatsExcluded] = useState<string[]>([]);
+  const [timeline, setTimeline] = useState<{ time: string; title: string; description: string }[]>([]);
+  
+  // Temporary input helper states
+  const [includedInput, setIncludedInput] = useState("");
+  const [excludedInput, setExcludedInput] = useState("");
+  const [stepTime, setStepTime] = useState("");
+  const [stepTitle, setStepTitle] = useState("");
+  const [stepDesc, setStepDesc] = useState("");
+  
+  // Markdown states
+  const [aboutMarkdown, setAboutMarkdown] = useState("");
+  const [mdTab, setMdTab] = useState<"edit" | "preview">("edit");
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -125,6 +161,32 @@ export default function PackagesClient({
     setPkgImages((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setPkgTitle("");
+    setPkgDescription("");
+    setPkgBasePrice("");
+    setPkgDuration("");
+    setPkgCapacity("");
+    setPkgPricingModel("PER_PERSON");
+    setPkgIsPopular(false);
+    setPkgImages([]);
+    setExistingImages([]);
+    setSelectedAssets([]);
+    setSelectedActivities([]);
+    setWhatsIncluded([]);
+    setWhatsExcluded([]);
+    setTimeline([]);
+    setIncludedInput("");
+    setExcludedInput("");
+    setStepTime("");
+    setStepTitle("");
+    setStepDesc("");
+    setAboutMarkdown("");
+    setMdTab("edit");
+    setPkgError(null);
+  };
+
   const handleCreatePackage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!pkgTitle.trim() || !pkgBasePrice.trim()) {
@@ -145,25 +207,38 @@ export default function PackagesClient({
       formData.append("isActive", "true");
       formData.append("assetIds", JSON.stringify(selectedAssets));
       formData.append("activityIds", JSON.stringify(selectedActivities));
+      formData.append("whatsIncluded", JSON.stringify(whatsIncluded));
+      formData.append("whatsExcluded", JSON.stringify(whatsExcluded));
+      formData.append("timeline", JSON.stringify(timeline));
+      formData.append("aboutMarkdown", aboutMarkdown);
 
       pkgImages.forEach((file) => {
         formData.append("images", file);
       });
 
-      const response = await fetch("/api/packages", {
-        method: "POST",
-        body: formData,
-      });
+      let response;
+      if (editingId) {
+        formData.append("existingImages", JSON.stringify(existingImages));
+        response = await fetch(`/api/packages/${editingId}`, {
+          method: "PUT",
+          body: formData,
+        });
+      } else {
+        response = await fetch("/api/packages", {
+          method: "POST",
+          body: formData,
+        });
+      }
 
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        throw new Error(result.error || "Failed to create package.");
+        throw new Error(result.error || `Failed to ${editingId ? "update" : "create"} package.`);
       }
 
-      const createdPkg = result.package;
+      const savedPkg = result.package;
+      const finalImageUrls = savedPkg.images || [];
 
-      const finalImageUrls = createdPkg.images || [];
       const newMeta = {
         duration: pkgDuration.trim() || "N/A",
         capacity: pkgCapacity.trim() || "N/A",
@@ -177,26 +252,21 @@ export default function PackagesClient({
           .filter(Boolean) as string[],
       };
 
-      const updatedMeta = { ...packageMeta, [createdPkg.id]: newMeta };
+      const updatedMeta = { ...packageMeta, [savedPkg.id]: newMeta };
       setPackageMeta(updatedMeta);
       localStorage.setItem("mandil_package_metadata", JSON.stringify(updatedMeta));
 
-      setPackages((prev) => [createdPkg, ...prev]);
+      if (editingId) {
+        setPackages((prev) => prev.map((p) => (p.id === editingId ? savedPkg : p)));
+      } else {
+        setPackages((prev) => [savedPkg, ...prev]);
+      }
 
-      setPkgTitle("");
-      setPkgDescription("");
-      setPkgBasePrice("");
-      setPkgDuration("");
-      setPkgCapacity("");
-      setPkgPricingModel("PER_PERSON");
-      setPkgIsPopular(false);
-      setPkgImages([]);
-      setSelectedAssets([]);
-      setSelectedActivities([]);
+      handleCancelEdit();
       setPkgSuccess(true);
       setTimeout(() => setPkgSuccess(false), 3000);
     } catch (err: any) {
-      setPkgError(err.message || "Failed to create package.");
+      setPkgError(err.message || `Failed to ${editingId ? "update" : "create"} package.`);
     } finally {
       setPkgCreating(false);
     }
@@ -211,6 +281,8 @@ export default function PackagesClient({
       assets: [],
       activities: [],
     };
+    setEditingId(pkg.id);
+    setExistingImages(pkg.images || meta.images || []);
     setPkgTitle(pkg.name);
     setPkgDescription(pkg.description || "");
     setPkgBasePrice(pkg.basePrice.toString());
@@ -218,6 +290,20 @@ export default function PackagesClient({
     setPkgCapacity(meta.capacity || "");
     setPkgPricingModel(pkg.pricingModel);
     setPkgIsPopular(meta.isPopular || false);
+
+    setWhatsIncluded(pkg.whatsIncluded || []);
+    setWhatsExcluded(pkg.whatsExcluded || []);
+    
+    let parsedTimeline = [];
+    if (pkg.timeline) {
+      try {
+        parsedTimeline = typeof pkg.timeline === "string" ? JSON.parse(pkg.timeline) : pkg.timeline;
+      } catch (e) {
+        console.error("Error parsing timeline in edit mode", e);
+      }
+    }
+    setTimeline(parsedTimeline);
+    setAboutMarkdown(pkg.aboutMarkdown || "");
 
     const matchedAssetIds = (meta.assets || [])
       .map((name) => amenities.find((a) => a.name === name)?.id)
@@ -228,14 +314,33 @@ export default function PackagesClient({
 
     setSelectedAssets(matchedAssetIds);
     setSelectedActivities(matchedActivityIds);
-
-    console.log("Mock Edit Mode: Loaded package details for:", pkg.name);
-    alert(`Editing mode active: "${pkg.name}" details loaded into the left form.`);
   };
 
-  const handleDeletePackage = (pkgId: string) => {
-    if (confirm("Are you sure you want to delete this package?")) {
+  const handleDeletePackage = async (pkgId: string) => {
+    if (!confirm("Are you sure you want to delete this package?")) return;
+
+    try {
+      const response = await fetch(`/api/packages/${pkgId}`, {
+        method: "DELETE",
+      });
+
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Failed to delete package.");
+      }
+
       setPackages((prev) => prev.filter((p) => p.id !== pkgId));
+
+      const newMeta = { ...packageMeta };
+      delete newMeta[pkgId];
+      setPackageMeta(newMeta);
+      localStorage.setItem("mandil_package_metadata", JSON.stringify(newMeta));
+
+      if (editingId === pkgId) {
+        handleCancelEdit();
+      }
+    } catch (err: any) {
+      alert(err.message || "Failed to delete package.");
     }
   };
 
@@ -254,8 +359,19 @@ export default function PackagesClient({
           onSubmit={handleCreatePackage}
           className="lg:col-span-5 bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-4"
         >
-          <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
-            <FiPlus className="text-emerald-700" /> Create Villa Package
+          <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center justify-between gap-2">
+            <span className="flex items-center gap-2">
+              <FiPlus className="text-emerald-700" /> {editingId ? "Edit Villa Package" : "Create Villa Package"}
+            </span>
+            {editingId && (
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                className="text-[10px] text-slate-400 hover:text-slate-600 font-bold transition-colors cursor-pointer"
+              >
+                Cancel Edit
+              </button>
+            )}
           </h3>
 
           {pkgError && (
@@ -265,7 +381,7 @@ export default function PackagesClient({
           )}
           {pkgSuccess && (
             <div className="p-3 bg-emerald-50 border border-emerald-100 text-emerald-800 text-xs rounded-xl font-medium">
-              Package added successfully!
+              {editingId ? "Package updated successfully!" : "Package added successfully!"}
             </div>
           )}
 
@@ -362,6 +478,34 @@ export default function PackagesClient({
 
           <div className="space-y-2">
             <label className="text-xs font-bold text-slate-600 block">Media Upload</label>
+            
+            {/* Existing Images Display */}
+            {existingImages.length > 0 && (
+              <div className="space-y-1.5 pb-2">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Current Saved Images ({existingImages.length})
+                </span>
+                <div className="grid grid-cols-5 gap-2.5">
+                  {existingImages.map((url, idx) => (
+                    <div
+                      key={idx}
+                      className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 bg-slate-100"
+                    >
+                      <Image src={url} alt={`existing-${idx}`} fill className="object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setExistingImages((prev) => prev.filter((_, i) => i !== idx))}
+                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-50 text-red-650 flex items-center justify-center shadow-sm cursor-pointer hover:bg-red-100 transition-colors"
+                        title="Remove existing image"
+                      >
+                        <FiTrash2 size={9} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div
               onDragOver={handleDragOver}
               onDrop={handleDrop}
@@ -393,7 +537,7 @@ export default function PackagesClient({
                     <button
                       type="button"
                       onClick={() => handleRemoveImage(idx)}
-                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-50 text-red-600 flex items-center justify-center shadow-sm cursor-pointer"
+                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-50 text-red-650 flex items-center justify-center shadow-sm cursor-pointer hover:bg-red-100 transition-colors"
                     >
                       <FiTrash2 size={9} />
                     </button>
@@ -401,6 +545,276 @@ export default function PackagesClient({
                 ))}
               </div>
             )}
+          </div>
+
+          {/* Section 1: What's Included & Excluded (Dynamic Lists) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Whats Included */}
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+              <label className="text-xs font-bold text-slate-700 block">What's Included</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={includedInput}
+                  onChange={(e) => setIncludedInput(e.target.value)}
+                  placeholder="Add included item..."
+                  className="flex-1 px-3 py-1.5 bg-white border border-slate-300 focus:border-emerald-600 rounded-xl text-slate-800 outline-none text-xs transition-colors"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      if (includedInput.trim()) {
+                        setWhatsIncluded((prev) => [...prev, includedInput.trim()]);
+                        setIncludedInput("");
+                      }
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (includedInput.trim()) {
+                      setWhatsIncluded((prev) => [...prev, includedInput.trim()]);
+                      setIncludedInput("");
+                    }
+                  }}
+                  className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold cursor-pointer transition-colors"
+                >
+                  Add
+                </button>
+              </div>
+              <ul className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                {whatsIncluded.map((item, idx) => (
+                  <li key={idx} className="flex items-center justify-between text-xs text-slate-700 bg-white border border-slate-200 px-2.5 py-1.5 rounded-xl shadow-2xs">
+                    <span className="flex items-center gap-1.5 min-w-0">
+                      <FiCheck className="text-emerald-600 text-sm flex-shrink-0" />
+                      <span className="truncate">{item}</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setWhatsIncluded((prev) => prev.filter((_, i) => i !== idx))}
+                      className="text-slate-400 hover:text-red-500 cursor-pointer p-0.5 flex-shrink-0"
+                    >
+                      <FiX className="text-xs" />
+                    </button>
+                  </li>
+                ))}
+                {whatsIncluded.length === 0 && (
+                  <p className="text-[10px] text-slate-400 italic">No inclusions added yet.</p>
+                )}
+              </ul>
+            </div>
+
+            {/* Whats Excluded */}
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+              <label className="text-xs font-bold text-slate-700 block">What's Excluded</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={excludedInput}
+                  onChange={(e) => setExcludedInput(e.target.value)}
+                  placeholder="Add excluded item..."
+                  className="flex-1 px-3 py-1.5 bg-white border border-slate-300 focus:border-emerald-600 rounded-xl text-slate-800 outline-none text-xs transition-colors"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      if (excludedInput.trim()) {
+                        setWhatsExcluded((prev) => [...prev, excludedInput.trim()]);
+                        setExcludedInput("");
+                      }
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (excludedInput.trim()) {
+                      setWhatsExcluded((prev) => [...prev, excludedInput.trim()]);
+                      setExcludedInput("");
+                    }
+                  }}
+                  className="px-3.5 py-1.5 bg-slate-650 hover:bg-slate-700 text-white rounded-xl text-xs font-bold cursor-pointer transition-colors"
+                >
+                  Add
+                </button>
+              </div>
+              <ul className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                {whatsExcluded.map((item, idx) => (
+                  <li key={idx} className="flex items-center justify-between text-xs text-slate-750 bg-white border border-slate-200 px-2.5 py-1.5 rounded-xl shadow-2xs">
+                    <span className="flex items-center gap-1.5 min-w-0">
+                      <FiX className="text-slate-450 text-xs flex-shrink-0" />
+                      <span className="truncate text-slate-500">{item}</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setWhatsExcluded((prev) => prev.filter((_, i) => i !== idx))}
+                      className="text-slate-400 hover:text-red-500 cursor-pointer p-0.5 flex-shrink-0"
+                    >
+                      <FiX className="text-xs" />
+                    </button>
+                  </li>
+                ))}
+                {whatsExcluded.length === 0 && (
+                  <p className="text-[10px] text-slate-400 italic">No exclusions added yet.</p>
+                )}
+              </ul>
+            </div>
+          </div>
+
+          {/* Section 2: Experience Timeline (Dynamic Itinerary Builder) */}
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-4">
+            <label className="text-xs font-bold text-slate-750 block">Experience Timeline</label>
+            
+            {timeline.length > 0 && (
+              <div className="space-y-3.5 border-l-2 border-emerald-500 pl-4 ml-2">
+                {timeline.map((step, idx) => (
+                  <div key={idx} className="relative group space-y-1">
+                    <div className="absolute -left-[23px] top-1.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white shadow-xs" />
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <span className="text-[9px] font-bold text-emerald-700 bg-emerald-55/75 px-1.5 py-0.5 rounded-md">
+                          {step.time}
+                        </span>
+                        <h4 className="text-xs font-bold text-slate-800 mt-1">{step.title}</h4>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setTimeline((prev) => prev.filter((_, i) => i !== idx))}
+                        className="text-slate-400 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer flex-shrink-0"
+                        title="Delete Step"
+                      >
+                        <FiTrash2 size={11} />
+                      </button>
+                    </div>
+                    {step.description && (
+                      <p className="text-[11px] text-slate-500 leading-normal">{step.description}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="bg-white border border-slate-150 rounded-xl p-3.5 space-y-2.5">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Add Itinerary Step</span>
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 block">Time / Duration</label>
+                  <input
+                    type="text"
+                    value={stepTime}
+                    onChange={(e) => setStepTime(e.target.value)}
+                    placeholder="e.g. 08:30 AM or Hour 1"
+                    className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 outline-none text-xs focus:border-emerald-600 transition-colors"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 block">Step Title</label>
+                  <input
+                    type="text"
+                    value={stepTitle}
+                    onChange={(e) => setStepTitle(e.target.value)}
+                    placeholder="e.g. Welcome & Drinks"
+                    className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 outline-none text-xs focus:border-emerald-600 transition-colors"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 block">Short Description</label>
+                <textarea
+                  value={stepDesc}
+                  onChange={(e) => setStepDesc(e.target.value)}
+                  placeholder="Describe activity briefly..."
+                  rows={2}
+                  className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 outline-none text-xs focus:border-emerald-600 resize-none transition-colors"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (stepTime.trim() && stepTitle.trim()) {
+                    setTimeline((prev) => [
+                      ...prev,
+                      { time: stepTime.trim(), title: stepTitle.trim(), description: stepDesc.trim() },
+                    ]);
+                    setStepTime("");
+                    setStepTitle("");
+                    setStepDesc("");
+                  }
+                }}
+                className="w-full py-2 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-800 rounded-xl text-xs font-bold cursor-pointer transition-colors flex items-center justify-center gap-1.5"
+              >
+                <FiPlusCircle size={13} /> Add Itinerary Step
+              </button>
+            </div>
+          </div>
+
+          {/* Section 3: About This Experience (Markdown Editor) */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-700 block">About This Experience (Markdown)</label>
+              <div className="flex bg-slate-100 border border-slate-200 rounded-xl p-0.5">
+                <button
+                  type="button"
+                  onClick={() => setMdTab("edit")}
+                  className={`px-3 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                    mdTab === "edit" ? "bg-white text-emerald-700 shadow-xs" : "text-slate-500 hover:text-slate-800"
+                  }`}
+                >
+                  Edit Content
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMdTab("preview")}
+                  className={`px-3 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                    mdTab === "preview" ? "bg-white text-emerald-700 shadow-xs" : "text-slate-500 hover:text-slate-800"
+                  }`}
+                >
+                  Preview Markdown
+                </button>
+              </div>
+            </div>
+
+            <div className="border border-slate-200 rounded-2xl overflow-hidden bg-white">
+              {mdTab === "edit" ? (
+                <MdEditor
+                  modelValue={aboutMarkdown}
+                  onChange={setAboutMarkdown}
+                  language="en-US"
+                  placeholder="Provide detailed description of the experience using markdown formatting..."
+                  theme="light"
+                  style={{ height: "300px" }}
+                  toolbars={[
+                    "bold",
+                    "underline",
+                    "italic",
+                    "-",
+                    "strikeThrough",
+                    "sub",
+                    "sup",
+                    "quote",
+                    "unorderedList",
+                    "orderedList",
+                    "-",
+                    "code",
+                    "link",
+                    "image",
+                    "table",
+                    "-",
+                    "revoke",
+                    "next",
+                    "preview",
+                  ]}
+                />
+              ) : (
+                <div className="p-4 prose max-w-none text-xs min-h-[300px] max-h-[300px] overflow-y-auto bg-slate-50">
+                  <MdPreview
+                    modelValue={aboutMarkdown}
+                    language="en-US"
+                    theme="light"
+                    style={{ backgroundColor: "transparent" }}
+                  />
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Attach Assets/Add-ons */}
@@ -520,17 +934,30 @@ export default function PackagesClient({
             </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={pkgCreating}
-            className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-xs transition-colors duration-200 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-          >
-            {pkgCreating ? (
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : (
-              "Save Package"
+          <div className="flex gap-3">
+            {editingId && (
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                className="flex-1 py-3 border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-xl shadow-xs transition-colors duration-200 text-center cursor-pointer"
+              >
+                Cancel
+              </button>
             )}
-          </button>
+            <button
+              type="submit"
+              disabled={pkgCreating}
+              className={`flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-xs transition-colors duration-200 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50`}
+            >
+              {pkgCreating ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : editingId ? (
+                "Save Changes"
+              ) : (
+                "Save Package"
+              )}
+            </button>
+          </div>
         </form>
 
         {/* Listing */}

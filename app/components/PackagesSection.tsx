@@ -12,6 +12,8 @@ export interface Package {
   name: string;
   description: string;
   price: number;
+  basePrice?: number;
+  attachedAssetsCost?: number;
   priceType: string; // e.g., "Group", "Person"
   duration: string;
   capacity: string;
@@ -22,51 +24,6 @@ export interface Package {
   featured: boolean;
 }
 
-// Fallback mock packages if the API fails or is empty
-const FALLBACK_POPULAR_PACKAGES: Package[] = [
-  {
-    id: "boat-safari",
-    name: "Exclusive Bolgoda Boat Safari",
-    description: "Glide across the peaceful waters of Bolgoda Lake on a premium private pontoon. Experience stunning views, spot local wildlife, and capture the perfect sunset.",
-    price: 15000,
-    priceType: "Group",
-    duration: "2 Hours",
-    capacity: "Up to 12 Guests",
-    image: "/boat-safari.png",
-    badge: "PREMIUM SAFARI",
-    features: ["Luxury Pontoon Boat", "JBL PartyBox Speaker", "Safety Gear & Crew Included"],
-    isPopular: true,
-    featured: true
-  },
-  {
-    id: "family-package",
-    name: "Ultimate Family Day-Out",
-    description: "Spend a relaxing day by the lakeside. Package includes full-day access to our private pool, outdoor lawn games, a scenic boat ride, and a traditional buffet lunch.",
-    price: 3500,
-    priceType: "Person",
-    duration: "8 Hours",
-    capacity: "Min 5 - Max 20 Guests",
-    image: "/family-package.png",
-    badge: "ALL-INCLUSIVE",
-    features: ["Traditional Buffet Lunch", "Swimming Pool Access", "Lawn Games & Canoeing"],
-    isPopular: true,
-    featured: false
-  },
-  {
-    id: "sunset-canopy",
-    name: "Lakeside Sunset Canopy",
-    description: "An intimate, beautifully styled lakeside canopy setup. Perfect for romantic high tea, anniversaries, or private celebrations with scenic sunset views.",
-    price: 12500,
-    priceType: "Group",
-    duration: "3 Hours",
-    capacity: "2 - 6 Guests",
-    image: "/sunset-canopy.png",
-    badge: "LUXURY SETUP",
-    features: ["Bespoke Floral Setup", "Sunset Over Bolgoda", "Complimentary High Tea"],
-    isPopular: false,
-    featured: true
-  }
-];
 
 // Staggered grid item animation variants
 const containerVariants: Variants = {
@@ -134,8 +91,13 @@ export default function PackagesSection() {
     async function loadPackages() {
       try {
         setError(false);
-        const res = await fetch("/api/packages");
+        const [res, inventoryRes] = await Promise.all([
+          fetch("/api/packages"),
+          fetch("/api/admin/inventory")
+        ]);
         const data = await res.json();
+        const inventoryData = await inventoryRes.json();
+        const allAmenities = inventoryData.success ? inventoryData.amenities : [];
 
         if (data.success && Array.isArray(data.packages)) {
           // Map API models into strict Unified Package shape
@@ -154,10 +116,18 @@ export default function PackagesSection() {
               console.warn("Could not retrieve package metadata:", e);
             }
 
-            const price = pkg.price !== undefined ? Number(pkg.price) : Number(pkg.basePrice || 0);
+            const basePrice = pkg.price !== undefined ? Number(pkg.price) : Number(pkg.basePrice || 0);
+            
+            // Find attached assets and calculate cost
+            const attachedAmenities = (meta.assets || [])
+              .map((name: string) => allAmenities.find((a: any) => a.name === name))
+              .filter(Boolean);
+            const attachedAssetsCost = attachedAmenities.reduce((sum: number, am: any) => sum + (am.price || 0), 0);
+            const price = basePrice + attachedAssetsCost;
+
             const priceType = pkg.priceType || (pkg.pricingModel === "PER_PERSON" ? "Person" : "Group");
-            const duration = pkg.duration || meta.duration || (idx === 0 ? "2 Hours" : idx === 1 ? "8 Hours" : "3 Hours");
-            const capacity = pkg.capacity || meta.capacity || (idx === 0 ? "Up to 12 Guests" : idx === 1 ? "Min 5 - Max 20" : "2 - 6 Guests");
+            const duration = pkg.duration || meta.duration || "N/A";
+            const capacity = pkg.capacity || meta.capacity || "N/A";
             
             let image = "/boat-safari.png";
             if (pkg.image) {
@@ -166,17 +136,12 @@ export default function PackagesSection() {
               image = pkg.images[0];
             } else if (meta.images && meta.images.length > 0) {
               image = meta.images[0];
-            } else if (idx === 1) {
-              image = "/family-package.png";
-            } else if (idx === 2) {
-              image = "/sunset-canopy.png";
             }
 
-            // A package is popular if flagged so in DB or local metadata
-            const isPopular = pkg.isPopular !== undefined ? !!pkg.isPopular : (meta.isPopular !== undefined ? !!meta.isPopular : true);
+            const isPopular = pkg.isPopular !== undefined ? !!pkg.isPopular : (meta.isPopular !== undefined ? !!meta.isPopular : false);
             const featured = pkg.featured !== undefined ? !!pkg.featured : (meta.featured !== undefined ? !!meta.featured : false);
 
-            const badge = pkg.badge || (isPopular ? "POPULAR Choice" : "") || (idx === 0 ? "PREMIUM SAFARI" : idx === 1 ? "ALL-INCLUSIVE" : "LAKESIDE SPECIAL");
+            const badge = pkg.badge || (isPopular ? "POPULAR Choice" : "") || (featured ? "FEATURED" : "");
             const features = Array.isArray(pkg.features) 
               ? pkg.features 
               : [...(meta.assets || []), ...(meta.activities || [])];
@@ -190,6 +155,8 @@ export default function PackagesSection() {
               name: pkg.name,
               description: pkg.description || "Enjoy a premium curated escape tailored for relaxation and adventure.",
               price,
+              basePrice,
+              attachedAssetsCost,
               priceType,
               duration,
               capacity,
@@ -201,24 +168,24 @@ export default function PackagesSection() {
             };
           });
 
-          // Filter on client side: ONLY show packages where isPopular or featured is true
-          const filtered = mapped.filter((p) => p.isPopular || p.featured);
-          
-          if (filtered.length === 0) {
-            // Default fallback if no database elements are flagged
-            setPackages(FALLBACK_POPULAR_PACKAGES);
+          if (mapped.length > 0) {
+            const prioritized = mapped.filter((p) => p.isPopular || p.featured);
+            if (prioritized.length > 0) {
+              setPackages(prioritized.slice(0, 4));
+            } else {
+              setPackages(mapped.slice(0, 4));
+            }
           } else {
-            // limit to max of 3-4 cards horizontally
-            setPackages(filtered.slice(0, 4));
+            setPackages([]);
           }
         } else {
           setError(true);
-          setPackages(FALLBACK_POPULAR_PACKAGES);
+          setPackages([]);
         }
       } catch (err) {
         console.error("API fetching error:", err);
         setError(true);
-        setPackages(FALLBACK_POPULAR_PACKAGES);
+        setPackages([]);
       } finally {
         setLoading(false);
       }
@@ -242,6 +209,10 @@ export default function PackagesSection() {
       }
     }, 450);
   };
+
+  if (!loading && packages.length === 0) {
+    return null;
+  }
 
   return (
     <section
@@ -351,14 +322,21 @@ export default function PackagesSection() {
                     </div>
 
                     {/* Pricing text */}
-                    <div className="flex items-baseline gap-1 mb-4">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">From</span>
-                      <span className="text-xl font-black text-[#00966B] ml-1">
-                        Rs. {pkg.price.toLocaleString("en-US")}
-                      </span>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1">
-                        / {pkg.priceType}
-                      </span>
+                    <div className="flex flex-col gap-1 mb-4">
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Price</span>
+                        <span className="text-xl font-black text-[#00966B] ml-1">
+                          Rs. {pkg.price.toLocaleString("en-US")}
+                        </span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1">
+                          / {pkg.priceType}
+                        </span>
+                      </div>
+                      {pkg.attachedAssetsCost && pkg.attachedAssetsCost > 0 ? (
+                        <span className="text-[10px] text-slate-500 font-medium">
+                          (Base Rs. {pkg.basePrice?.toLocaleString("en-US")} + Rs. {pkg.attachedAssetsCost.toLocaleString("en-US")} assets)
+                        </span>
+                      ) : null}
                     </div>
 
                     {/* Action Buttons */}

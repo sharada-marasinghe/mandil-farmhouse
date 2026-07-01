@@ -37,17 +37,21 @@ enum PricingModel {
 // ─── Models ───────────────────────────────────────────────────────────────────
 
 model Package {
-  id           String       @id @default(cuid())
-  name         String       @unique
-  description  String?
-  basePrice    Decimal      @db.Decimal(10, 2) // LKR — the atomic price unit
-  pricingModel PricingModel @default(PER_PERSON)
-  isActive     Boolean      @default(true)
-  images       String[]     @default([])
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  id            String       @id @default(cuid())
+  name          String       @unique
+  description   String?
+  basePrice     Decimal      @db.Decimal(10, 2) // LKR — the atomic price unit
+  pricingModel  PricingModel @default(PER_PERSON)
+  isActive      Boolean      @default(true)
+  images        String[]     @default([])
+  whatsIncluded String[]     @default([])
+  whatsExcluded String[]     @default([])
+  timeline      Json         @default("[]")
+  aboutMarkdown String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
-  bookings     Booking[]
+  bookings      Booking[]
 
   @@map("packages")
 }

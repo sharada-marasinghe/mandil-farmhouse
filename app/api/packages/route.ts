@@ -37,6 +37,23 @@ export async function POST(request: Request) {
     const pricingModel = (formData.get("pricingModel") as string) || "PER_PERSON";
     const isActive = formData.get("isActive") !== "false";
 
+    const whatsIncludedStr = formData.get("whatsIncluded") as string;
+    const whatsExcludedStr = formData.get("whatsExcluded") as string;
+    const timelineStr = formData.get("timeline") as string;
+    const aboutMarkdown = (formData.get("aboutMarkdown") as string) || "";
+
+    let whatsIncluded: string[] = [];
+    let whatsExcluded: string[] = [];
+    let timeline: any[] = [];
+
+    try {
+      if (whatsIncludedStr) whatsIncluded = JSON.parse(whatsIncludedStr);
+      if (whatsExcludedStr) whatsExcluded = JSON.parse(whatsExcludedStr);
+      if (timelineStr) timeline = JSON.parse(timelineStr);
+    } catch (e) {
+      console.error("JSON parsing error for package fields:", e);
+    }
+
     const files = formData.getAll("images") as File[];
     const publicUrls: string[] = [];
 
@@ -51,11 +68,9 @@ export async function POST(request: Request) {
         const file = files[i];
         if (!file || typeof file === "string" || !file.name) continue;
 
-        // Convert file into Buffer
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
 
-        // Generate clean unique filename using timestamp
         const fileExtension = file.name.split(".").pop() || "png";
         const cleanName = file.name
           .replace(`.${fileExtension}`, "")
@@ -64,7 +79,6 @@ export async function POST(request: Request) {
         
         const filePath = `packages/${cleanName}-${Date.now()}.${fileExtension}`;
 
-        // Upload to Supabase bucket 'images-b'
         const { error: uploadError } = await supabase.storage
           .from("images-b")
           .upload(filePath, buffer, {
@@ -78,7 +92,6 @@ export async function POST(request: Request) {
           throw new Error(`Failed to upload image "${file.name}" to storage: ${uploadError.message}`);
         }
 
-        // Get public URL
         const { data } = supabase.storage.from("images-b").getPublicUrl(filePath);
         if (data?.publicUrl) {
           publicUrls.push(data.publicUrl);
@@ -101,6 +114,10 @@ export async function POST(request: Request) {
         pricingModel: (pricingModel as PricingModel) || PricingModel.PER_PERSON,
         isActive: typeof isActive === "boolean" ? isActive : true,
         images: publicUrls,
+        whatsIncluded,
+        whatsExcluded,
+        timeline,
+        aboutMarkdown: aboutMarkdown || null,
       },
     });
 

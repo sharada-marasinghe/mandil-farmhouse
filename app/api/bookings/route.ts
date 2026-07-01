@@ -33,6 +33,7 @@ interface CreateBookingPayload {
   bookingDate: string;
   numberOfGuests: number;
   packageId: string;
+  totalPrice?: number;
 }
 
 interface ValidationError {
@@ -111,6 +112,13 @@ function validateCreatePayload(body: unknown): {
     errors.push({ field: "packageId", message: "packageId is required and must be a non-empty string." });
   }
 
+  // totalPrice (optional but must be valid non-negative number if supplied)
+  if (b.totalPrice !== undefined && b.totalPrice !== null) {
+    if (typeof b.totalPrice !== "number" || b.totalPrice < 0) {
+      errors.push({ field: "totalPrice", message: "totalPrice must be a non-negative number when provided." });
+    }
+  }
+
   if (errors.length > 0) {
     return { data: null, errors };
   }
@@ -123,6 +131,7 @@ function validateCreatePayload(body: unknown): {
       bookingDate: b.bookingDate as string,
       numberOfGuests: b.numberOfGuests as number,
       packageId: (b.packageId as string).trim(),
+      totalPrice: b.totalPrice !== undefined ? (b.totalPrice as number) : undefined,
     },
     errors: [],
   };
@@ -256,11 +265,15 @@ export async function POST(request: NextRequest): Promise<Response> {
     }
 
     // 4. Compute total price based on the package's pricing model
-    const totalPrice = computeTotalPrice(
-      selectedPackage.basePrice,
-      selectedPackage.pricingModel,
-      data.numberOfGuests
-    );
+    // If client supplied a pre-calculated total (e.g. including asset costs), use it.
+    // Otherwise compute using package base rate.
+    const totalPrice = data.totalPrice !== undefined
+      ? data.totalPrice
+      : computeTotalPrice(
+          selectedPackage.basePrice,
+          selectedPackage.pricingModel,
+          data.numberOfGuests
+        );
 
     // 5. Generate a unique booking number (checked against DB)
     const bookingNumber = await generateUniqueBookingNumber();
